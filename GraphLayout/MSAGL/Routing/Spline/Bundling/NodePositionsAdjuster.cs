@@ -428,7 +428,7 @@ namespace Microsoft.Msagl.Routing.Spline.Bundling {
 
             //fixing polylines
             foreach (var metroline in abcPolylines) {
-                RemovePolypoint(metroline.Polyline.PolylinePoints.First(p => p.Point == b));
+								RemovePolypoint(metroline.Polyline.PolylinePoints.FirstOrDefault(p => p.Point == b));
                 CollectionUtilities.RemoveFromMap(segsToPolylines, new PointPair(a, b), metroline);
                 CollectionUtilities.RemoveFromMap(segsToPolylines, new PointPair(b, c), metroline);
                 CollectionUtilities.AddToMap(segsToPolylines, new PointPair(a, c), metroline);
@@ -445,11 +445,13 @@ namespace Microsoft.Msagl.Routing.Spline.Bundling {
             abcPolylines = abPolylines * bcPolylines;
         }
 
-        void RemovePolypoint(PolylinePoint p) {
-            PolylinePoint prev = p.Prev;
-            PolylinePoint next = p.Next;
-            prev.Next = next;
-            next.Prev = prev;
+		void RemovePolypoint(PolylinePoint p) {
+					if (p != null) 	{
+						PolylinePoint prev = p.Prev;
+						PolylinePoint next = p.Next;
+						prev.Next = next;
+						next.Prev = prev;
+					}
         }
 
         #endregion
