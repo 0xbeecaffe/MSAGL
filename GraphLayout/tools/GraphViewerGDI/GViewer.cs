@@ -198,6 +198,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		bool wasMinimized;
 		const string WindowZoomButtonToolTipText = "Zoom in by dragging a rectangle";
 		double zoomWindowThreshold = 0.05; //inches
+		public List<AnnotationBaseObject> AnnotationObjects = new List<AnnotationBaseObject>();
 
 		#region Component Designer generated code
 
@@ -1615,7 +1616,6 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			ForwardEnabled = listOfViewInfos.ForwardAvailable;
 		}
 
-
 		internal void ProcessOnPaint(Graphics g, PrintPageEventArgs printPageEvenArgs)
 		{
 			if (PanelHeight < minimalSizeToDraw || PanelWidth < minimalSizeToDraw || DGraph == null)
@@ -1651,15 +1651,18 @@ namespace Microsoft.Msagl.GraphViewerGdi
 					foreach (IViewerObject viewerObject in Entities)
 						((DObject)viewerObject).UpdateRenderedBox();
 
+					AnnotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Background).ToList().ForEach(o => o.Draw(g));
+
 					DGraph.DrawGraph(g);
 
+					AnnotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Foreground).ToList().ForEach(o => o.Draw(g));
 					//some info is known only after the first drawing
 
 					if (bBNode == null && BuildHitTree
 #if TEST_MSAGL
-                        && (
-                               dGraph.DrawingGraph.DebugICurves == null
-                           )
+												&& (
+															 dGraph.DrawingGraph.DebugICurves == null
+													 )
 #endif
 												)
 					{
@@ -1746,7 +1749,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 				// Insert hard coded constraints for tests
 
 #if DEBUG
-        TestSomeGraphs();
+				TestSomeGraphs();
 #endif
 			}
 			OriginalGraph.CreateGeometryGraph();
@@ -1769,57 +1772,57 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		}
 
 #if DEBUG
-    void TestSomeGraphs()
-    {
-      if (fileName.EndsWith("lovett.dot"))
-      {
-        OriginalGraph.LayerConstraints.AddUpDownVerticalConstraint(OriginalGraph.FindNode("Logica"),
-                                                                   OriginalGraph.FindNode("IBM"));
-        OriginalGraph.LayerConstraints.AddUpDownVerticalConstraint(OriginalGraph.FindNode("IBM"),
-                                                                   OriginalGraph.FindNode("Taligent"));
-        OriginalGraph.LayerConstraints.AddUpDownVerticalConstraint(OriginalGraph.FindNode("Taligent"),
-                                                                   OriginalGraph.FindNode("Walkabout"));
-        OriginalGraph.LayerConstraints.AddUpDownVerticalConstraint(OriginalGraph.FindNode("Walkabout"),
-                                                                   OriginalGraph.FindNode("Microsoft"));
-        OriginalGraph.LayerConstraints.AddSameLayerNeighbors(OriginalGraph.FindNode("MSXML"),
-                                                             OriginalGraph.FindNode("sysxml"),
-                                                             OriginalGraph.FindNode("xsharp"),
-                                                             OriginalGraph.FindNode("xmled"),
-                                                             OriginalGraph.FindNode("Progression"));
-      }
-      else if (fileName.EndsWith("dependenciesForTaskCrashTest.dot"))
-      {
-        OriginalGraph.LayerConstraints.PinNodesToSameLayer(
-            OriginalGraph.FindNode("C1"),
-            OriginalGraph.FindNode("C2"),
-            OriginalGraph.FindNode("C3"),
-            OriginalGraph.FindNode("C4"),
-            OriginalGraph.FindNode("C5"),
-            OriginalGraph.FindNode("C6"),
-            OriginalGraph.FindNode("C7"),
-            OriginalGraph.FindNode("C8"),
-            OriginalGraph.FindNode("C9"),
-            OriginalGraph.FindNode("C10"));
-        OriginalGraph.LayerConstraints.PinNodesToSameLayer(
-            OriginalGraph.FindNode("R1"),
-            OriginalGraph.FindNode("R2"),
-            OriginalGraph.FindNode("R3"),
-            OriginalGraph.FindNode("R4"),
-            OriginalGraph.FindNode("R5"),
-            OriginalGraph.FindNode("R6"),
-            OriginalGraph.FindNode("R7"),
-            OriginalGraph.FindNode("R8"),
-            OriginalGraph.FindNode("R9"),
-            OriginalGraph.FindNode("R10"));
-      }
-      else if (fileName.EndsWith("andrei.dot"))
-      {
-        OriginalGraph.LayerConstraints.AddUpDownVerticalConstraint(OriginalGraph.FindNode("open"),
-                                                                   OriginalGraph.FindNode("bezier"));
-        OriginalGraph.LayerConstraints.AddUpDownVerticalConstraint(OriginalGraph.FindNode("closed"),
-                                                                   OriginalGraph.FindNode("ellipse"));
-      }
-    }
+		void TestSomeGraphs()
+		{
+			if (fileName.EndsWith("lovett.dot"))
+			{
+				OriginalGraph.LayerConstraints.AddUpDownVerticalConstraint(OriginalGraph.FindNode("Logica"),
+																																	 OriginalGraph.FindNode("IBM"));
+				OriginalGraph.LayerConstraints.AddUpDownVerticalConstraint(OriginalGraph.FindNode("IBM"),
+																																	 OriginalGraph.FindNode("Taligent"));
+				OriginalGraph.LayerConstraints.AddUpDownVerticalConstraint(OriginalGraph.FindNode("Taligent"),
+																																	 OriginalGraph.FindNode("Walkabout"));
+				OriginalGraph.LayerConstraints.AddUpDownVerticalConstraint(OriginalGraph.FindNode("Walkabout"),
+																																	 OriginalGraph.FindNode("Microsoft"));
+				OriginalGraph.LayerConstraints.AddSameLayerNeighbors(OriginalGraph.FindNode("MSXML"),
+																														 OriginalGraph.FindNode("sysxml"),
+																														 OriginalGraph.FindNode("xsharp"),
+																														 OriginalGraph.FindNode("xmled"),
+																														 OriginalGraph.FindNode("Progression"));
+			}
+			else if (fileName.EndsWith("dependenciesForTaskCrashTest.dot"))
+			{
+				OriginalGraph.LayerConstraints.PinNodesToSameLayer(
+						OriginalGraph.FindNode("C1"),
+						OriginalGraph.FindNode("C2"),
+						OriginalGraph.FindNode("C3"),
+						OriginalGraph.FindNode("C4"),
+						OriginalGraph.FindNode("C5"),
+						OriginalGraph.FindNode("C6"),
+						OriginalGraph.FindNode("C7"),
+						OriginalGraph.FindNode("C8"),
+						OriginalGraph.FindNode("C9"),
+						OriginalGraph.FindNode("C10"));
+				OriginalGraph.LayerConstraints.PinNodesToSameLayer(
+						OriginalGraph.FindNode("R1"),
+						OriginalGraph.FindNode("R2"),
+						OriginalGraph.FindNode("R3"),
+						OriginalGraph.FindNode("R4"),
+						OriginalGraph.FindNode("R5"),
+						OriginalGraph.FindNode("R6"),
+						OriginalGraph.FindNode("R7"),
+						OriginalGraph.FindNode("R8"),
+						OriginalGraph.FindNode("R9"),
+						OriginalGraph.FindNode("R10"));
+			}
+			else if (fileName.EndsWith("andrei.dot"))
+			{
+				OriginalGraph.LayerConstraints.AddUpDownVerticalConstraint(OriginalGraph.FindNode("open"),
+																																	 OriginalGraph.FindNode("bezier"));
+				OriginalGraph.LayerConstraints.AddUpDownVerticalConstraint(OriginalGraph.FindNode("closed"),
+																																	 OriginalGraph.FindNode("ellipse"));
+			}
+		}
 #endif
 
 		/// <summary>

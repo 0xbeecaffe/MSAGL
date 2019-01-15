@@ -32,6 +32,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Printing;
+using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
 using Microsoft.Msagl.Core.Geometry;
@@ -508,7 +509,9 @@ namespace Microsoft.Msagl.GraphViewerGdi
     {
       var m = Transform.Inverse;
       var rec = new Core.Geometry.Rectangle(m * (new Point(0, 0)), m * new Point(w, h));
-      rec = Core.Geometry.Rectangle.Intersect(originalGraph.BoundingBox, rec);
+			// combine originalGraph.BoundingBox with AnnotationObjectsBoundingBox
+			var combinedRec = AnnotationObjects.Count > 0 ? Core.Geometry.Rectangle.Union(originalGraph.BoundingBox, AnnotationObjectsBoundingBox) : originalGraph.BoundingBox;
+			rec = Core.Geometry.Rectangle.Intersect(combinedRec, rec);
       srcRect = new RectangleF((float)rec.Left, (float)rec.Bottom, (float)rec.Width, (float)rec.Height);
 
       //            if (scaledDown == false){
@@ -530,6 +533,21 @@ namespace Microsoft.Msagl.GraphViewerGdi
       //                srcRect.Height = (float) GraphHeight;
       //            }
     }
+		
+		/// <summary>
+		/// Calculates the bounding box of all annotation objects
+		/// </summary>
+		Core.Geometry.Rectangle AnnotationObjectsBoundingBox
+		{
+			get
+			{
+				int minLeft = AnnotationObjects.Min(a => a.BaseRectangle.Left);
+				int maxRight = AnnotationObjects.Max(a => a.BaseRectangle.Right);
+				int minTop = AnnotationObjects.Min(a => a.BaseRectangle.Top);
+				int maxBottom = AnnotationObjects.Max(a => a.BaseRectangle.Bottom);
+				return new Core.Geometry.Rectangle(minLeft, maxBottom, new Point(maxRight - minLeft, maxBottom - minTop));
+			}
+		}
 
     static double GetDotsPerInch()
     {

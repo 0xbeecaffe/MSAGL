@@ -442,11 +442,13 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
+    <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\version.cs">
       <Link>version.cs</Link>
     </Compile>
+    <Compile Include="AnnotationObjects.cs" />
     <Compile Include="BBNode.cs" />
     <Compile Include="CMouseEventArgs.cs" />
     <Compile Include="DEdge.cs" />
