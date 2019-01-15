@@ -198,6 +198,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		bool wasMinimized;
 		const string WindowZoomButtonToolTipText = "Zoom in by dragging a rectangle";
 		double zoomWindowThreshold = 0.05; //inches
+		public List<AnnotationBaseObject> AnnotationObjects = new List<AnnotationBaseObject>();
 
 		#region Component Designer generated code
 
@@ -1615,7 +1616,6 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			ForwardEnabled = listOfViewInfos.ForwardAvailable;
 		}
 
-
 		internal void ProcessOnPaint(Graphics g, PrintPageEventArgs printPageEvenArgs)
 		{
 			if (PanelHeight < minimalSizeToDraw || PanelWidth < minimalSizeToDraw || DGraph == null)
@@ -1651,8 +1651,11 @@ namespace Microsoft.Msagl.GraphViewerGdi
 					foreach (IViewerObject viewerObject in Entities)
 						((DObject)viewerObject).UpdateRenderedBox();
 
+					AnnotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Background).ToList().ForEach(o => o.Draw(g));
+
 					DGraph.DrawGraph(g);
 
+					AnnotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Foreground).ToList().ForEach(o => o.Draw(g));
 					//some info is known only after the first drawing
 
 					if (bBNode == null && BuildHitTree

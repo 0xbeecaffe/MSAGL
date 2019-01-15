@@ -30,6 +30,7 @@ using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Msagl.Core.Geometry.Curves;
 using Microsoft.Msagl.Core.Layout;
@@ -65,6 +66,14 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			private get { return gViewer; }
 			set { gViewer = value; }
 		}
+		/// <summary>
+		/// The Anotation object last hit by mouseDown event. Cleared on mouseUp
+		/// </summary>
+		AnnotationBaseObject _hitAnnotationObject;
+		/// <summary>
+		/// The cursor position from top-left corner of _hitAnnotationObject when hit
+		/// </summary>
+		Size _annotationHitOffset;
 
 
 		DraggingMode MouseDraggingMode
@@ -132,6 +141,15 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			gViewer.RaiseMouseDownEvent(iArgs);
 			if (!iArgs.Handled)
 			{
+				P2 p1 = gViewer.ScreenToSource(e.Location);
+				// Here, we get a chance to process AnnotationObject selection and move
+				_hitAnnotationObject = GViewer.AnnotationObjects.FirstOrDefault(a => a.BaseRectangle.Contains((int)p1.X, (int)p1.Y));
+				if (_hitAnnotationObject != null)
+				{
+					_annotationHitOffset = new Size((int)p1.X -_hitAnnotationObject.BaseRectangle.X , (int)p1.Y - _hitAnnotationObject.BaseRectangle.Y);
+					return;
+				}
+
 				currentPressedButton = e.Button;
 				if (currentPressedButton == MouseButtons.Left)
 					if (ClientRectangle.Contains(PointToClient(MousePosition)))
@@ -172,10 +190,12 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		{
 			base.OnMouseUp(args);
 			MsaglMouseEventArgs iArgs = CreateMouseEventArgs(args);
+			_hitAnnotationObject = null;
 			gViewer.RaiseMouseUpEvent(iArgs);
 			if (NeedToEraseRubber) DrawXorFrame();
 			if (!iArgs.Handled)
 			{
+
 				if (gViewer.OriginalGraph != null && MouseDraggingMode == DraggingMode.WindowZoom)
 				{
 					var p = mouseDownPoint;
@@ -189,7 +209,6 @@ namespace Microsoft.Msagl.GraphViewerGdi
 							//r.Intersect(gViewer.DestRect);
 							if (GViewer.ModifierKeyWasPressed() == false)
 							{
-
 								P2 p1 = gViewer.ScreenToSource(mouseDownPoint);
 								P2 p2 = gViewer.ScreenToSource(mouseUpPoint);
 								double sc = Math.Min(Width / Math.Abs(p1.X - p2.X),
@@ -203,6 +222,49 @@ namespace Microsoft.Msagl.GraphViewerGdi
 				}
 			}
 			zoomWindow = false;
+		}
+		protected override void OnMouseMove(MouseEventArgs args)
+		{
+			MsaglMouseEventArgs iArgs = CreateMouseEventArgs(args);
+			if (_hitAnnotationObject != null && args.Button == MouseButtons.Left)
+			{
+				P2 p1 = gViewer.ScreenToSource(args.Location);
+				if (Control.ModifierKeys == Keys.Control)
+				{
+					// resize
+					int w = Math.Abs((int)p1.X - _hitAnnotationObject.BaseRectangle.X + _annotationHitOffset.Width);
+					int h = Math.Abs((int)p1.Y - _hitAnnotationObject.BaseRectangle.Y + _annotationHitOffset.Height);
+					_hitAnnotationObject.BaseRectangle.Width = w;
+					_hitAnnotationObject.BaseRectangle.Height = h;
+				}
+				else
+				{
+					// reposition
+					_hitAnnotationObject.BaseRectangle.Location = new Point((int)p1.X - _annotationHitOffset.Width, (int)p1.Y - _annotationHitOffset.Height);
+				}
+				Invalidate();
+			}
+			else 
+			{
+				gViewer.RaiseMouseMoveEvent(iArgs);
+				gViewer.RaiseRegularMouseMove(args);
+				if (!iArgs.Handled)
+				{
+					if (gViewer.Graph != null)
+					{
+						SetCursor(args);
+						if (MouseDraggingMode == DraggingMode.Pan)
+							ProcessPan(args);
+						else if (zoomWindow)
+						{
+							//the user is holding the left button, do nothing
+							DrawZoomWindow(args);
+						}
+						else
+							HitIfBbNodeIsNotNull(args);
+					}
+				}
+			}
 		}
 
 		/// <summary>
@@ -229,30 +291,6 @@ namespace Microsoft.Msagl.GraphViewerGdi
 						}
 					};
 		}
-
-		protected override void OnMouseMove(MouseEventArgs args)
-		{
-			MsaglMouseEventArgs iArgs = CreateMouseEventArgs(args);
-			gViewer.RaiseMouseMoveEvent(iArgs);
-			gViewer.RaiseRegularMouseMove(args);
-			if (!iArgs.Handled)
-			{
-				if (gViewer.Graph != null)
-				{
-					SetCursor(args);
-					if (MouseDraggingMode == DraggingMode.Pan)
-						ProcessPan(args);
-					else if (zoomWindow)
-					{
-						//the user is holding the left button, do nothing
-						DrawZoomWindow(args);
-					}
-					else
-						HitIfBbNodeIsNotNull(args);
-				}
-			}
-		}
-
 
 		void HitIfBbNodeIsNotNull(MouseEventArgs args)
 		{
