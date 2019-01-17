@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows;
+using System.Xml.Serialization;
 using Point = System.Drawing.Point;
 
 namespace Microsoft.Msagl.GraphViewerGdi
@@ -10,13 +11,14 @@ namespace Microsoft.Msagl.GraphViewerGdi
 	/// <summary>
 	/// An abstract, base object of all Annotation objects
 	/// </summary>
+	[Serializable]
 	public abstract class AnnotationBaseObject
 	{
 		#region Fields
 		/// <summary>
 		/// A unique object ID
 		/// </summary>
-		public Guid ObjectID { get; private set; } = Guid.NewGuid();
+		public Guid ObjectID { get; set; } = Guid.NewGuid();
 		/// <summary>
 		/// Object name
 		/// </summary>
@@ -33,6 +35,10 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		/// Controls if the annotation object is in the backgroud or foreground
 		/// </summary>
 		public AnnotationObjectLayer Layer = AnnotationObjectLayer.Background;
+		#endregion
+
+		#region Constructors
+		public AnnotationBaseObject() { }
 		#endregion
 
 		#region Properties
@@ -84,16 +90,19 @@ namespace Microsoft.Msagl.GraphViewerGdi
 	/// <summary>
 	/// Assumes that this type of Annotation object has a well defined contour
 	/// </summary>
+	[Serializable]
 	public abstract class FramedAnnotationObject : AnnotationBaseObject
 	{
 		/// <summary>
 		/// The contour color of the object
 		/// </summary>
+		[XmlElement(Type = typeof(XmlColor))]
 		public Color ContourColor { get; set; } = Color.CornflowerBlue;
 
 		/// <summary>
 		/// The fill color of the object
 		/// </summary>
+		[XmlElement(Type = typeof(XmlColor))]
 		public Color? FillColor { get; set; } = null;
 
 		private int _TransparencyLevel = 255;
@@ -214,6 +223,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 	/// <summary>
 	/// An ellipsys object
 	/// </summary>
+	[Serializable]
 	public class AnnotationEllipse : FramedAnnotationObject
 	{
 		/// <summary>
@@ -234,6 +244,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 	/// <summary>
 	/// A rectangle object
 	/// </summary>
+	[Serializable]
 	public class AnnotationRectangle : FramedAnnotationObject
 	{
 		/// <summary>
@@ -251,24 +262,28 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		}
 	}
 
-	public class AnnotationLabel : AnnotationBaseObject
+	[Serializable]
+	public class AnnotationLabel : FramedAnnotationObject
 	{
 		#region Fields
 		/// <summary>
 		/// The label text
 		/// </summary>
 		public string DisplayText { get; set; }
+
 		/// <summary>
 		/// Label text positioning inside parent's BaseRectangle
 		/// </summary>
 		public ContentAlignment Alignment { get; set; } = ContentAlignment.MiddleCenter;
+
 		/// <summary>
-		/// The parent object of the label, may only be set via the constructor
+		/// The parent object of the label
 		/// </summary>
-		private AnnotationBaseObject Parent;
+		public AnnotationBaseObject Parent;
 		#endregion
 
 		#region Constructors
+		public AnnotationLabel() : base() { }
 		public AnnotationLabel(AnnotationBaseObject parent, string displayText, ContentAlignment alignement = ContentAlignment.MiddleCenter)
 		{
 			this.Parent = parent;
@@ -276,6 +291,8 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			this.Alignment = alignement;
 		}
 		#endregion
+
+		public override GraphicsPath Contour => throw new NotImplementedException();
 
 		#region Public members
 		public override void Draw(Graphics g)

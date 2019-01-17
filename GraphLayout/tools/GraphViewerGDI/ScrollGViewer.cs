@@ -27,6 +27,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
@@ -75,10 +76,12 @@ namespace Microsoft.Msagl.GraphViewerGdi
 
     internal double zoomFraction = 0.5f;
 
-    /// <summary>
-    /// Default constructor
-    /// </summary>
-    public GViewer()
+		internal List<AnnotationBaseObject> _annotationObjects = new List<AnnotationBaseObject>();
+
+		/// <summary>
+		/// Default constructor
+		/// </summary>
+		public GViewer()
     {
       // This call is required by the Windows.Forms Form Designer.
       InitializeComponent();
@@ -389,7 +392,6 @@ namespace Microsoft.Msagl.GraphViewerGdi
     Brush outsideAreaBrush = Brushes.LightGray;
     internal Cursor panGrabCursor;
     internal Cursor panOpenCursor;
-
     internal DObject selectedDObject;
     bool storeViewInfo = true;
 
@@ -407,7 +409,11 @@ namespace Microsoft.Msagl.GraphViewerGdi
     /// </summary>
     public object SelectedObject
     {
-      get { return selectedDObject != null ? selectedDObject.DrawingObject : null; }
+      get
+			{
+				if (selectedDObject != null) return selectedDObject.DrawingObject;
+				else return panel.SelectedAnnotationObject;
+			}
     }
 
     internal System.Drawing.Point MousePositonWhenSetSelectedObject
@@ -510,7 +516,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
       var m = Transform.Inverse;
       var rec = new Core.Geometry.Rectangle(m * (new Point(0, 0)), m * new Point(w, h));
 			// combine originalGraph.BoundingBox with AnnotationObjectsBoundingBox
-			var combinedRec = AnnotationObjects.Count > 0 ? Core.Geometry.Rectangle.Union(originalGraph.BoundingBox, AnnotationObjectsBoundingBox) : originalGraph.BoundingBox;
+			var combinedRec = _annotationObjects.Count > 0 ? Core.Geometry.Rectangle.Union(originalGraph.BoundingBox, AnnotationObjectsBoundingBox) : originalGraph.BoundingBox;
 			rec = Core.Geometry.Rectangle.Intersect(combinedRec, rec);
       srcRect = new RectangleF((float)rec.Left, (float)rec.Bottom, (float)rec.Width, (float)rec.Height);
 
@@ -541,10 +547,10 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		{
 			get
 			{
-				int minLeft = AnnotationObjects.Min(a => a.BaseRectangle.Left);
-				int maxRight = AnnotationObjects.Max(a => a.BaseRectangle.Right);
-				int minTop = AnnotationObjects.Min(a => a.BaseRectangle.Top);
-				int maxBottom = AnnotationObjects.Max(a => a.BaseRectangle.Bottom);
+				int minLeft = _annotationObjects.Min(a => a.BaseRectangle.Left);
+				int maxRight = _annotationObjects.Max(a => a.BaseRectangle.Right);
+				int minTop = _annotationObjects.Min(a => a.BaseRectangle.Top);
+				int maxBottom = _annotationObjects.Max(a => a.BaseRectangle.Bottom);
 				return new Core.Geometry.Rectangle(minLeft, maxBottom, new Point(maxRight - minLeft, maxBottom - minTop));
 			}
 		}

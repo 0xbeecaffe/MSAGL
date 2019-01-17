@@ -69,12 +69,15 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		/// <summary>
 		/// The Anotation object last hit by mouseDown event. Cleared on mouseUp
 		/// </summary>
-		AnnotationObjectHit _hitAnnotationObject;
+		AnnotationObjectHit _draggedAnnotationObject;
+		/// <summary>
+		/// The Annotation object last selected
+		/// </summary>
+		public AnnotationBaseObject SelectedAnnotationObject { get; private set; }
 		/// <summary>
 		/// The cursor position from top-left corner of _hitAnnotationObject when hit
 		/// </summary>
 		Size _annotationHitOffset;
-
 
 		DraggingMode MouseDraggingMode
 		{
@@ -165,16 +168,21 @@ namespace Microsoft.Msagl.GraphViewerGdi
 				P2 p1 = gViewer.ScreenToSource(e.Location);
 				#region Annotation object hit testing
 				// Here, we get a chance to process AnnotationObject selection and move
-				if (_hitAnnotationObject.aObject == null)
+				if (_draggedAnnotationObject.aObject == null)
 				{
-					_hitAnnotationObject.aObject = GViewer.AnnotationObjects.FirstOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
-					if (_hitAnnotationObject.aObject != null)
+					_draggedAnnotationObject.aObject = GViewer._annotationObjects.FirstOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
+					if (_draggedAnnotationObject.aObject != null)
 					{
-						_hitAnnotationObject.hitRegion = _hitAnnotationObject.aObject.HitRegion(p1);
-						_annotationHitOffset = new Size((int)p1.X - _hitAnnotationObject.aObject.BaseRectangle.X, (int)p1.Y - _hitAnnotationObject.aObject.BaseRectangle.Y);
+						SelectedAnnotationObject = _draggedAnnotationObject.aObject;
+						_draggedAnnotationObject.hitRegion = _draggedAnnotationObject.aObject.HitRegion(p1);
+						_annotationHitOffset = new Size((int)p1.X - _draggedAnnotationObject.aObject.BaseRectangle.X, (int)p1.Y - _draggedAnnotationObject.aObject.BaseRectangle.Y);
 						return;
 					}
-					else _hitAnnotationObject.hitRegion = AnnotationObjectRegion.None;
+					else
+					{
+						_draggedAnnotationObject.hitRegion = AnnotationObjectRegion.None;
+						SelectedAnnotationObject = null;
+					}
 				}
 				#endregion
 
@@ -191,14 +199,15 @@ namespace Microsoft.Msagl.GraphViewerGdi
 						}
 					}
 			}
+			else SelectedAnnotationObject = null;
 		}
 
 		protected override void OnMouseUp(MouseEventArgs args)
 		{
 			base.OnMouseUp(args);
 			MsaglMouseEventArgs iArgs = CreateMouseEventArgs(args);
-			_hitAnnotationObject.aObject = null;
-			_hitAnnotationObject.hitRegion = AnnotationObjectRegion.None;
+			_draggedAnnotationObject.aObject = null;
+			_draggedAnnotationObject.hitRegion = AnnotationObjectRegion.None;
 			gViewer.RaiseMouseUpEvent(iArgs);
 			if (NeedToEraseRubber) DrawXorFrame();
 			if (!iArgs.Handled)
@@ -237,10 +246,11 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			MsaglMouseEventArgs iArgs = CreateMouseEventArgs(args);
 			P2 p1 = gViewer.ScreenToSource(args.Location);
 			// Here, we get a chance to process AnnotationObject selection and move
+			#region Handle Annotation objects
 			Cursor annotationCursor = Cursors.Default;
 			if (args.Button == MouseButtons.None)
 			{
-				var overAnnotationObject = GViewer.AnnotationObjects.FirstOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
+				var overAnnotationObject = GViewer._annotationObjects.FirstOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
 				if (overAnnotationObject != null)
 				{
 					AnnotationObjectRegion hr = overAnnotationObject.HitRegion(p1);
@@ -264,11 +274,11 @@ namespace Microsoft.Msagl.GraphViewerGdi
 					}
 				}
 			}
-			if (_hitAnnotationObject.aObject != null && args.Button == MouseButtons.Left)
+			if (_draggedAnnotationObject.aObject != null && args.Button == MouseButtons.Left)
 			{
 				// an AnnotationObject is hit by MouseDown, now moding the mouse while Left button is being pressed => move or size the object depending on HitRegion
-				AnnotationObjectRegion hr = _hitAnnotationObject.hitRegion;
-				AnnotationBaseObject ao = _hitAnnotationObject.aObject;
+				AnnotationObjectRegion hr = _draggedAnnotationObject.hitRegion;
+				AnnotationBaseObject ao = _draggedAnnotationObject.aObject;
 				if ((hr & AnnotationObjectRegion.Edge) == hr)
 				{
 					// resize
@@ -315,6 +325,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 				}
 				Invalidate();
 			}
+			#endregion
 			else
 			{
 				gViewer.RaiseMouseMoveEvent(iArgs);
@@ -336,7 +347,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 						else
 						{
 							HitIfBbNodeIsNotNull(args);
-							if (gViewer.SelectedObject == null && annotationCursor != Cursors.Default) this.Cursor = annotationCursor;
+							if ((gViewer.SelectedObject == null || gViewer.SelectedObject is AnnotationBaseObject) && annotationCursor != Cursors.Default) this.Cursor = annotationCursor;
 						}
 					}
 				}

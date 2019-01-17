@@ -198,7 +198,6 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		bool wasMinimized;
 		const string WindowZoomButtonToolTipText = "Zoom in by dragging a rectangle";
 		double zoomWindowThreshold = 0.05; //inches
-		public List<AnnotationBaseObject> AnnotationObjects = new List<AnnotationBaseObject>();
 
 		#region Component Designer generated code
 
@@ -372,6 +371,65 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		}
 
 		#endregion
+
+		/// <summary>
+		/// Add a new Annotation object
+		/// </summary>
+		/// <param name="aObject"></param>
+		public void AddAnnotationObject(AnnotationBaseObject aObject)
+		{
+			if (aObject == null) return;
+			if (!_annotationObjects.Contains(aObject)) _annotationObjects.Add(aObject);
+			Invalidate();
+		}
+
+		/// <summary>
+		/// Add multiple Annotation objects
+		/// </summary>
+		/// <param name="aObjects"></param>
+		public void AddAnnotationObject(List<AnnotationBaseObject> aObjects)
+		{
+			if (aObjects == null) return;
+			aObjects.ForEach(ao =>
+			{
+				if (!_annotationObjects.Contains(ao)) _annotationObjects.Add(ao);
+			});
+			Invalidate();
+		}
+
+		/// <summary>
+		/// Remove a specific Annotation object
+		/// </summary>
+		/// <param name="aObject"></param>
+		public void RemoveAnnotationObject(AnnotationBaseObject aObject)
+		{
+			if (aObject == null) return;
+			if (_annotationObjects.Contains(aObject))
+			{
+				_annotationObjects.Remove(aObject);
+				Invalidate();
+			}
+		}
+
+		/// <summary>
+		/// Remove any AnnotationObject
+		/// </summary>
+		public void ClearAnnotation()
+		{
+			_annotationObjects.Clear();
+			Invalidate();
+		}
+
+		/// <summary>
+		/// Returns the list of Annotation objects
+		/// </summary>
+		public List<AnnotationBaseObject> AnnotationObjects
+		{
+			get
+			{
+				return new List<AnnotationBaseObject>(_annotationObjects);
+			}
+		}
 
 		internal EntityFilterDelegate EntityFilterDelegate { get; set; }
 		/// <summary>
@@ -1303,9 +1361,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		Thread layoutThread;
 
 		// A wait handle for ensuring layouting has started
-		readonly EventWaitHandle layoutWaitHandle =
-				new EventWaitHandle(false,
-														EventResetMode.AutoReset);
+		readonly EventWaitHandle layoutWaitHandle = new EventWaitHandle(false, EventResetMode.AutoReset);
 
 		PlaneTransformation transformation;
 
@@ -1651,11 +1707,11 @@ namespace Microsoft.Msagl.GraphViewerGdi
 					foreach (IViewerObject viewerObject in Entities)
 						((DObject)viewerObject).UpdateRenderedBox();
 
-					AnnotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Background).ToList().ForEach(o => o.Draw(g));
+					_annotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Background).ToList().ForEach(o => o.Draw(g));
 
 					DGraph.DrawGraph(g);
 
-					AnnotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Foreground).ToList().ForEach(o => o.Draw(g));
+					_annotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Foreground).ToList().ForEach(o => o.Draw(g));
 					//some info is known only after the first drawing
 
 					if (bBNode == null && BuildHitTree
