@@ -29,6 +29,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 using Microsoft.Msagl.Core.Geometry.Curves;
 using Microsoft.Msagl.Core.Layout;
 using Microsoft.Msagl.Drawing;
+using Microsoft.Msagl.GraphViewerGdi.Annotation;
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -73,7 +74,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		/// <summary>
 		/// The Annotation object last selected
 		/// </summary>
-		public AnnotationBaseObject SelectedAnnotationObject { get; private set; }
+		internal AnnotationBaseObject SelectedAnnotationObject { get; set; }
 		/// <summary>
 		/// The cursor position from top-left corner of _hitAnnotationObject when hit
 		/// </summary>
@@ -162,18 +163,17 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		{
 			base.OnMouseDown(e);
 			MsaglMouseEventArgs iArgs = CreateMouseEventArgs(e);
+			P2 p1 = gViewer.ScreenToSource(e.Location);
 			gViewer.RaiseMouseDownEvent(iArgs);
 			if (!iArgs.Handled)
 			{
-				P2 p1 = gViewer.ScreenToSource(e.Location);
 				#region Annotation object hit testing
 				// Here, we get a chance to process AnnotationObject selection and move
 				if (_draggedAnnotationObject.aObject == null)
 				{
-					_draggedAnnotationObject.aObject = GViewer._annotationObjects.FirstOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
+					_draggedAnnotationObject.aObject = SelectedAnnotationObject;
 					if (_draggedAnnotationObject.aObject != null)
 					{
-						SelectedAnnotationObject = _draggedAnnotationObject.aObject;
 						_draggedAnnotationObject.hitRegion = _draggedAnnotationObject.aObject.HitRegion(p1);
 						_annotationHitOffset = new Size((int)p1.X - _draggedAnnotationObject.aObject.BaseRectangle.X, (int)p1.Y - _draggedAnnotationObject.aObject.BaseRectangle.Y);
 						return;
@@ -181,7 +181,6 @@ namespace Microsoft.Msagl.GraphViewerGdi
 					else
 					{
 						_draggedAnnotationObject.hitRegion = AnnotationObjectRegion.None;
-						SelectedAnnotationObject = null;
 					}
 				}
 				#endregion
@@ -199,7 +198,6 @@ namespace Microsoft.Msagl.GraphViewerGdi
 						}
 					}
 			}
-			else SelectedAnnotationObject = null;
 		}
 
 		protected override void OnMouseUp(MouseEventArgs args)
@@ -286,7 +284,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 					{
 						case AnnotationObjectRegion.EdgeLeft:
 							{
-								int w = ao.BaseRectangle.Width - ((int)p1.X - ao.BaseRectangle.X) ;
+								int w = ao.BaseRectangle.Width - ((int)p1.X - ao.BaseRectangle.X);
 								if (w > 5)
 								{
 									ao.BaseRectangle.X = (int)p1.X;

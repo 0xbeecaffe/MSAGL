@@ -40,6 +40,7 @@ using Microsoft.Msagl.Core.Geometry;
 using Microsoft.Msagl.Core.Layout;
 using Microsoft.Msagl.Core.Routing;
 using Microsoft.Msagl.Drawing;
+using Microsoft.Msagl.GraphViewerGdi.Annotation;
 using Microsoft.Msagl.Layout.Incremental;
 using Microsoft.Msagl.Layout.Layered;
 using Microsoft.Msagl.Layout.MDS;
@@ -815,7 +816,9 @@ namespace Microsoft.Msagl.GraphViewerGdi
 
     void DrawingPanel_MouseDown(object sender, MouseEventArgs e)
     {
-      OnMouseDown(e);
+			Point p1 = ScreenToSource(e.Location);
+			panel.SelectedAnnotationObject = _annotationObjects.FirstOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
+			OnMouseDown(e);
     }
 
     void DrawingPanel_MouseCaptureChanged(object sender, EventArgs e)

@@ -6,7 +6,7 @@ using System.Windows;
 using System.Xml.Serialization;
 using Point = System.Drawing.Point;
 
-namespace Microsoft.Msagl.GraphViewerGdi
+namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 {
 	/// <summary>
 	/// An abstract, base object of all Annotation objects
@@ -52,7 +52,10 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		#endregion
 
 		#region Public members
-		public abstract void Draw(Graphics g);
+		public virtual void Draw(Graphics g)
+		{
+			Labels.ForEach(l => l.Draw(g));
+		}
 
 		public AnnotationLabel AddLabel(string displayText, ContentAlignment alignment = ContentAlignment.MiddleCenter)
 		{
@@ -97,15 +100,33 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		/// The contour color of the object
 		/// </summary>
 		[XmlElement(Type = typeof(XmlColor))]
-		public Color ContourColor { get; set; } = Color.CornflowerBlue;
+		public Color FrameColor { get; set; } = Color.CornflowerBlue;
+
+		public int FrameWidth { get; set; } = 1;
 
 		/// <summary>
 		/// The fill color of the object
 		/// </summary>
 		[XmlElement(Type = typeof(XmlColor))]
-		public Color? FillColor { get; set; } = null;
+		public Color FillColor { get; set; } = Color.AliceBlue;
 
-		private int _TransparencyLevel = 255;
+		/// <summary>
+		/// The fill color of the object
+		/// </summary>
+		[XmlElement(Type = typeof(XmlColor))]
+		public Color FillColor2 { get; set; } = Color.White;
+
+		/// <summary>
+		/// The gradient fill style
+		/// </summary>
+		public LinearGradientMode GradientMode { get; set; } = LinearGradientMode.Vertical;
+
+		/// <summary>
+		/// The fill mode for background
+		/// </summary>
+		public BackFillMode FillMode { get; set; } = BackFillMode.Solid;
+
+		private int _TransparencyLevel = 100;
 		/// <summary>
 		/// The level of fill color trnsparency between 0..255
 		/// </summary>
@@ -123,13 +144,13 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		/// <summary>
 		/// Must return the GraphicPath object that is the contour of this Annotation object
 		/// </summary>
-		public abstract GraphicsPath Contour { get; }
+		public abstract GraphicsPath Frame { get; }
 
 		public virtual Pen DrawingPen
 		{
 			get
 			{
-				return new Pen(DrawingBrush);
+				return new Pen(DrawingBrush, FrameWidth);
 			}
 		}
 
@@ -137,7 +158,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		{
 			get
 			{
-				return new SolidBrush(ContourColor);
+				return new SolidBrush(FrameColor);
 			}
 		}
 
@@ -150,25 +171,45 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			if (g == null) return;
 			if (BaseRectangle.Width == 0 || BaseRectangle.Height == 0) return;
 			// --
-			if (FillColor != null)
+			switch (FillMode)
 			{
-				Color fColor = Color.FromArgb(TransparencyLevel, (Color)FillColor);
-				using (SolidBrush fillBrush = new SolidBrush(fColor))
+				case BackFillMode.None: break;
+				case BackFillMode.Solid:
+					{
+						Color fColor = Color.FromArgb(TransparencyLevel, FillColor);
+						using (SolidBrush fillBrush = new SolidBrush(fColor))
+						{
+							g.FillPath(fillBrush, Frame);
+						}
+						break;
+					}
+				case BackFillMode.Gradient:
+					{
+						Color startColor = Color.FromArgb(TransparencyLevel, FillColor);
+						Color endColor = Color.FromArgb(TransparencyLevel, FillColor2);
+						using (LinearGradientBrush fillBrush = new LinearGradientBrush(BaseRectangle, startColor, endColor, GradientMode))
+						{
+							g.FillPath(fillBrush, Frame);
+						}
+						break;
+					}
+			}
+			if (FrameWidth > 0)
+			{
+				using (var p = DrawingPen)
 				{
-					g.FillPath(fillBrush, Contour);
+					g.DrawPath(p, Frame);
 				}
 			}
-			using (var p = DrawingPen)
-			{
-				g.DrawPath(p, Contour);
-			}
+
+			base.Draw(g);
 		}
 
 		public override AnnotationObjectRegion HitRegion(Point testPoint)
 		{
 			if (ContainsPoint(testPoint))
 			{
-				using (Pen hitTestPen = new Pen(Brushes.Black, 10))
+				using (Pen hitTestPen = new Pen(Brushes.Black, 30))
 				{
 					Point c = Center;
 					// The vector pointing from Center to TestPoint vCT = vT - vC
@@ -191,10 +232,10 @@ namespace Microsoft.Msagl.GraphViewerGdi
 					var vBR = Vector.Subtract(new Vector(BaseRectangle.Right, BaseRectangle.Top), new Vector(c.X, c.Y));
 					cornerAngles[3] = Vector.AngleBetween(new Vector(10, 0), vBR);
 
-					bool onEdge = Contour.IsOutlineVisible(testPoint, hitTestPen);
+					bool onEdge = Frame.IsOutlineVisible(testPoint, hitTestPen);
 					if (onEdge)
 					{
-						if ((vCTangle > 0 && vCTangle < cornerAngles[1]) || (vCTangle <=0 && vCTangle > cornerAngles[3])) return AnnotationObjectRegion.EdgeRight;
+						if ((vCTangle > 0 && vCTangle < cornerAngles[1]) || (vCTangle <= 0 && vCTangle > cornerAngles[3])) return AnnotationObjectRegion.EdgeRight;
 						else if (vCTangle >= cornerAngles[0] || vCTangle <= cornerAngles[2]) return AnnotationObjectRegion.EdgeLeft;
 						else if (vCTangle >= cornerAngles[1] && vCTangle < cornerAngles[0]) return AnnotationObjectRegion.EdgeBottom;
 						else return AnnotationObjectRegion.EdgeTop;
@@ -213,7 +254,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 
 		public override bool ContainsPoint(Point testPoint)
 		{
-			using (var r = new Region(Contour))
+			using (var r = new Region(Frame))
 			{
 				return r.IsVisible(testPoint);
 			}
@@ -230,7 +271,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		/// Returns the ellipse shaped GraphicsPath that fits BaseRectangle
 		/// </summary>
 		/// <returns></returns>
-		public override GraphicsPath Contour
+		public override GraphicsPath Frame
 		{
 			get
 			{
@@ -251,7 +292,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		/// Returns the rectangle shaped GraphicsPath that fits BaseRectangle
 		/// </summary>
 		/// <returns></returns>
-		public override GraphicsPath Contour
+		public override GraphicsPath Frame
 		{
 			get
 			{
@@ -263,7 +304,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 	}
 
 	[Serializable]
-	public class AnnotationLabel : FramedAnnotationObject
+	public class AnnotationLabel : AnnotationRectangle
 	{
 		#region Fields
 		/// <summary>
@@ -292,8 +333,6 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		}
 		#endregion
 
-		public override GraphicsPath Contour => throw new NotImplementedException();
-
 		#region Public members
 		public override void Draw(Graphics g)
 		{
@@ -316,6 +355,8 @@ namespace Microsoft.Msagl.GraphViewerGdi
 	/// Position of the annotation objext in Z order
 	/// </summary>
 	public enum AnnotationObjectLayer { Background, Foreground }
+
+	public enum BackFillMode { None, Solid, Gradient }
 
 	[Flags]
 	public enum AnnotationObjectRegion
