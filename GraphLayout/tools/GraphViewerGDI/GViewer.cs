@@ -376,11 +376,17 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		/// <summary>
 		/// Add a new Annotation object
 		/// </summary>
-		/// <param name="aObject"></param>
-		public void AddAnnotationObject(AnnotationBaseObject aObject)
+		/// <param name="aObject">The object to be added</param>
+		/// <param name="index">The desired position of the object to add</param>
+		public void AddAnnotationObject(AnnotationBaseObject aObject, int index = -1)
 		{
 			if (aObject == null) return;
-			if (!_annotationObjects.Contains(aObject)) _annotationObjects.Add(aObject);
+			if (!_annotationObjects.Contains(aObject))
+			{
+				if (index == -1) _annotationObjects.Add(aObject);
+				else _annotationObjects.Insert(index, aObject);
+				aObject.Viewer = this;
+			}
 			Invalidate();
 		}
 
@@ -394,6 +400,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			aObjects.ForEach(ao =>
 			{
 				if (!_annotationObjects.Contains(ao)) _annotationObjects.Add(ao);
+				ao.Viewer = this;
 			});
 			Invalidate();
 		}
@@ -408,6 +415,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			if (_annotationObjects.Contains(aObject))
 			{
 				_annotationObjects.Remove(aObject);
+				aObject.Viewer = null;
 				Invalidate();
 			}
 		}
@@ -422,7 +430,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		}
 
 		/// <summary>
-		/// Returns the list of Annotation objects
+		/// Returns a copy of the list of Annotation objects
 		/// </summary>
 		public List<AnnotationBaseObject> AnnotationObjects
 		{

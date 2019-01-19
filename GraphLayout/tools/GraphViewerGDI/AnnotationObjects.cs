@@ -24,6 +24,11 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		/// </summary>
 		public string Name { get; set; }
 		/// <summary>
+		/// The GViewer where this object belongs to
+		/// </summary>
+		[NonSerialized, XmlIgnore]
+		public GViewer Viewer = null;
+		/// <summary>
 		/// The base rectangle of the object
 		/// </summary>
 		public Rectangle BaseRectangle = new Rectangle(0, 0, 0, 0);
@@ -62,6 +67,80 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 			AnnotationLabel lbl = new AnnotationLabel(this, displayText, alignment);
 			Labels.Add(lbl);
 			return lbl;
+		}
+
+		/// <summary>
+		/// Brings the object one layer forward
+		/// </summary>
+		public void BringForward()
+		{
+			if (Viewer != null)
+			{
+				var allObjects = Viewer.AnnotationObjects;
+				int currentIndex = allObjects.IndexOf(this);
+				if (currentIndex < allObjects.Count - 1)
+				{
+					GViewer v = Viewer;
+					v.RemoveAnnotationObject(this);
+					v.AddAnnotationObject(this, currentIndex + 1);
+					v.Invalidate();
+				}
+			}
+		}
+
+		/// <summary>
+		/// Brings the object to front
+		/// </summary>
+		public void BringToFront()
+		{
+			if (Viewer != null)
+			{
+				var allObjects = Viewer.AnnotationObjects;
+				int currentIndex = allObjects.IndexOf(this);
+				if (currentIndex < allObjects.Count - 1)
+				{
+					GViewer v = Viewer;
+					v.RemoveAnnotationObject(this);
+					v.AddAnnotationObject(this, allObjects.Count - 1);
+					v.Invalidate();
+				}
+			}
+		}
+
+		/// <summary>
+		/// Sends the object one layer backward
+		/// </summary>
+		public void SendBackward()
+		{
+			if (Viewer != null)
+			{
+				int currentIndex = Viewer.AnnotationObjects.IndexOf(this);
+				if (currentIndex > 0)
+				{
+					GViewer v = Viewer;
+					v.RemoveAnnotationObject(this);
+					v.AddAnnotationObject(this, currentIndex - 1);
+					v.Invalidate();
+				}
+			}
+		}
+
+		/// <summary>
+		/// Sends the object to the back
+		/// </summary>
+		public void SendToBack()
+		{
+			if (Viewer != null)
+			{
+				int currentIndex = Viewer.AnnotationObjects.IndexOf(this);
+				if (currentIndex > 0)
+				{
+					GViewer v = Viewer;
+					v.RemoveAnnotationObject(this);
+					v.AddAnnotationObject(this, 0);
+					v.Invalidate();
+				}
+			}
 		}
 
 		/// <summary>
@@ -185,8 +264,8 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 					}
 				case BackFillMode.Gradient:
 					{
-						Color startColor = Color.FromArgb(TransparencyLevel, FillColor);
-						Color endColor = Color.FromArgb(TransparencyLevel, FillColor2);
+						Color startColor = Color.FromArgb(TransparencyLevel, FillColor2);
+						Color endColor = Color.FromArgb(TransparencyLevel, FillColor);
 						using (LinearGradientBrush fillBrush = new LinearGradientBrush(BaseRectangle, startColor, endColor, GradientMode))
 						{
 							g.FillPath(fillBrush, Frame);
@@ -209,7 +288,8 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		{
 			if (ContainsPoint(testPoint))
 			{
-				using (Pen hitTestPen = new Pen(Brushes.Black, 30))
+				int hitTestWidth = FrameWidth > 30 ? FrameWidth : 30;
+				using (Pen hitTestPen = new Pen(Brushes.Black, hitTestWidth))
 				{
 					Point c = Center;
 					// The vector pointing from Center to TestPoint vCT = vT - vC
