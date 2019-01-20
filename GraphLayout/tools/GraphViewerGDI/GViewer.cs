@@ -373,6 +373,8 @@ namespace Microsoft.Msagl.GraphViewerGdi
 
 		#endregion
 
+		#region Annotation
+
 		/// <summary>
 		/// Add a new Annotation object
 		/// </summary>
@@ -439,6 +441,8 @@ namespace Microsoft.Msagl.GraphViewerGdi
 				return new List<AnnotationBaseObject>(_annotationObjects);
 			}
 		}
+
+		#endregion
 
 		internal EntityFilterDelegate EntityFilterDelegate { get; set; }
 		/// <summary>

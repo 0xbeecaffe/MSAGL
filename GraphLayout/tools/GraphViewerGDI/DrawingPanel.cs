@@ -31,6 +31,7 @@ using Microsoft.Msagl.Core.Layout;
 using Microsoft.Msagl.Drawing;
 using Microsoft.Msagl.GraphViewerGdi.Annotation;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
@@ -248,27 +249,33 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			Cursor annotationCursor = Cursors.Default;
 			if (args.Button == MouseButtons.None)
 			{
-				var overAnnotationObject = GViewer._annotationObjects.FirstOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
+				var overAnnotationObject = GViewer._annotationObjects.SelectMany(a => a.MeAndMyChildren()).FirstOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
 				if (overAnnotationObject != null)
 				{
 					AnnotationObjectRegion hr = overAnnotationObject.HitRegion(p1);
 					// if hit on object body
 					if ((hr & AnnotationObjectRegion.Body) == hr) annotationCursor = Cursors.SizeAll;
-					// hit on edge
-					switch (hr)
+					else
 					{
-						case AnnotationObjectRegion.EdgeLeft:
-						case AnnotationObjectRegion.EdgeRight:
+						if (!overAnnotationObject.FixedSize)
+						{
+							// hit on edge
+							switch (hr)
 							{
-								annotationCursor = Cursors.SizeWE;
-								break;
+								case AnnotationObjectRegion.EdgeLeft:
+								case AnnotationObjectRegion.EdgeRight:
+									{
+										annotationCursor = Cursors.SizeWE;
+										break;
+									}
+								case AnnotationObjectRegion.EdgeTop:
+								case AnnotationObjectRegion.EdgeBottom:
+									{
+										annotationCursor = Cursors.SizeNS;
+										break;
+									}
 							}
-						case AnnotationObjectRegion.EdgeTop:
-						case AnnotationObjectRegion.EdgeBottom:
-							{
-								annotationCursor = Cursors.SizeNS;
-								break;
-							}
+						}
 					}
 				}
 			}
@@ -277,7 +284,8 @@ namespace Microsoft.Msagl.GraphViewerGdi
 				// an AnnotationObject is hit by MouseDown, now moding the mouse while Left button is being pressed => move or size the object depending on HitRegion
 				AnnotationObjectRegion hr = _draggedAnnotationObject.hitRegion;
 				AnnotationBaseObject ao = _draggedAnnotationObject.aObject;
-				if ((hr & AnnotationObjectRegion.Edge) == hr)
+				// resize anythonly objects that are not FixedSize
+				if (!ao.FixedSize && (hr & AnnotationObjectRegion.Edge) == hr)
 				{
 					// resize
 					switch (hr)
@@ -319,7 +327,9 @@ namespace Microsoft.Msagl.GraphViewerGdi
 				else
 				{
 					// move
-					ao.BaseRectangle.Location = new Point((int)p1.X - _annotationHitOffset.Width, (int)p1.Y - _annotationHitOffset.Height);
+					Point newLocation = new Point((int)p1.X - _annotationHitOffset.Width, (int)p1.Y - _annotationHitOffset.Height);
+					// Allow movement if either the current location is invalid, or the new location is valid
+					if (!ao.AllowedLocation(ao.BaseRectangle.Location) || ao.AllowedLocation(newLocation)) ao.SetLocation(newLocation);
 				}
 				Invalidate();
 			}

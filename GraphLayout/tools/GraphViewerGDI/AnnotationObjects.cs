@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Linq;
 using System.Windows;
 using System.Xml.Serialization;
 using Point = System.Drawing.Point;
@@ -12,6 +13,9 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 	/// An abstract, base object of all Annotation objects
 	/// </summary>
 	[Serializable]
+	[XmlInclude(typeof(AnnotationEllipse))]
+	[XmlInclude(typeof(AnnotationRectangle))]
+	[XmlInclude(typeof(AnnotationLabel))]
 	public abstract class AnnotationBaseObject
 	{
 		#region Fields
@@ -33,13 +37,22 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		/// </summary>
 		public Rectangle BaseRectangle = new Rectangle(0, 0, 0, 0);
 		/// <summary>
-		/// Any labels associated to this object
+		/// Any child objects associated to this object
 		/// </summary>
-		public List<AnnotationLabel> Labels = new List<AnnotationLabel>();
+		public List<AnnotationBaseObject> Children = new List<AnnotationBaseObject>();
 		/// <summary>
 		/// Controls if the annotation object is in the backgroud or foreground
 		/// </summary>
 		public AnnotationObjectLayer Layer = AnnotationObjectLayer.Background;
+		/// <summary>
+		/// Determines if the object is auto-sized, hence user cannot resize it
+		/// </summary>
+		public bool FixedSize = false;
+		/// <summary>
+		/// The parent object of the label
+		/// </summary>
+		[NonSerialized, XmlIgnore]
+		public AnnotationBaseObject Parent;
 		#endregion
 
 		#region Constructors
@@ -51,28 +64,96 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		{
 			get
 			{
-				return new Point(BaseRectangle.Left + (BaseRectangle.Right - BaseRectangle.Left) / 2, BaseRectangle.Top + (BaseRectangle.Bottom - BaseRectangle.Top) / 2);
+				return new Point((BaseRectangle.Left + BaseRectangle.Right) / 2, (BaseRectangle.Top + BaseRectangle.Bottom) / 2);
 			}
 		}
 		#endregion
 
 		#region Public members
-		public virtual void Draw(Graphics g)
-		{
-			Labels.ForEach(l => l.Draw(g));
-		}
 
 		public AnnotationLabel AddLabel(string displayText, ContentAlignment alignment = ContentAlignment.MiddleCenter)
 		{
 			AnnotationLabel lbl = new AnnotationLabel(this, displayText, alignment);
-			Labels.Add(lbl);
+			lbl.BaseRectangle = this.BaseRectangle;
+			AddChild(lbl);
 			return lbl;
+		}
+
+		public void AddChild(AnnotationBaseObject child)
+		{
+			child.Parent = this;
+			if (child.BaseRectangle.Left < this.BaseRectangle.Left) child.BaseRectangle.X = this.BaseRectangle.X;
+			if (child.BaseRectangle.Top < this.BaseRectangle.Top) child.BaseRectangle.Y = this.BaseRectangle.Y;
+			if (child.BaseRectangle.Right > this.BaseRectangle.Right) child.BaseRectangle.Width -= (child.BaseRectangle.Right - this.BaseRectangle.Right);
+			if (child.BaseRectangle.Bottom > this.BaseRectangle.Bottom) child.BaseRectangle.Height -= (child.BaseRectangle.Bottom - this.BaseRectangle.Top);
+			Children.Add(child);
+			Viewer?.Invalidate();
+		}
+
+		/// <summary>
+		/// Determines if the objects's BaseREctangle top-left corner can be moved to the given point. By default, an object may not be dragged outside its parent frame
+		/// </summary>
+		/// <param name="p"></param>
+		/// <returns></returns>
+		public virtual bool AllowedLocation(Point p)
+		{
+			if (Parent is FramedAnnotationObject)
+			{
+				FramedAnnotationObject fParent = Parent as FramedAnnotationObject;
+				Rectangle testRect = BaseRectangle;
+				testRect.Offset(p.X - BaseRectangle.X, p.Y - BaseRectangle.Y);
+				// test if all corners of testRect are inside parent's frame
+				GraphicsPath parentFrame = fParent.Frame;
+				bool b = parentFrame.IsVisible(p) && parentFrame.IsVisible(testRect.Right, testRect.Top) && parentFrame.IsVisible(testRect.Left, testRect.Bottom) && parentFrame.IsVisible(testRect.Right, testRect.Bottom);
+				return b;
+			}
+			else return true;
+		}
+
+		public virtual void Draw(Graphics g)
+		{
+			Children.ForEach(l => l.Draw(g));
+		}
+
+		/// <summary>
+		/// Replace parent value for all children recursively. This is necessary after deserialization of object.
+		/// </summary>
+		public void FixChildren()
+		{
+			Children.ForEach(c =>
+			{
+				c.Parent = this;
+				c.FixChildren();
+			});
+		}
+
+		/// <summary>
+		/// Returns a list with 
+		/// </summary>
+		public List<AnnotationBaseObject> MeAndMyChildren()
+		{
+			List<AnnotationBaseObject> aItems = Children.SelectMany(c => c.MeAndMyChildren()).ToList();
+			aItems.Add(this);
+			return aItems;
+		}
+
+		/// <summary>
+		/// Removes this object from its parent
+		/// </summary>
+		public void RemoveFromParent()
+		{
+			if (Parent != null && Parent.Children.Contains(this))
+			{
+				Parent.Children.Remove(this);
+				Parent = null;
+				Viewer?.Invalidate();
+			}
 		}
 
 		/// <summary>
 		/// Brings the object one layer forward
 		/// </summary>
-		public void BringForward()
+		public void SendBackward()
 		{
 			if (Viewer != null)
 			{
@@ -91,7 +172,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		/// <summary>
 		/// Brings the object to front
 		/// </summary>
-		public void BringToFront()
+		public void SendToBack()
 		{
 			if (Viewer != null)
 			{
@@ -108,9 +189,25 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		}
 
 		/// <summary>
+		/// Sets the location of this object and all of its children
+		/// </summary>
+		/// <param name="newLocation"></param>
+		public virtual void SetLocation(Point newLocation)
+		{
+			Point offset = new Point(newLocation.X - BaseRectangle.X, newLocation.Y - BaseRectangle.Y);
+			OffsetChildren(this, offset);
+
+			void OffsetChildren(AnnotationBaseObject parent, Point offsetBy)
+			{
+				parent.Children.ForEach(c => OffsetChildren(c, offsetBy));
+				parent.BaseRectangle.Offset(offsetBy);
+			}
+		}
+
+		/// <summary>
 		/// Sends the object one layer backward
 		/// </summary>
-		public void SendBackward()
+		public void BringForward()
 		{
 			if (Viewer != null)
 			{
@@ -128,7 +225,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		/// <summary>
 		/// Sends the object to the back
 		/// </summary>
-		public void SendToBack()
+		public void BringToFront()
 		{
 			if (Viewer != null)
 			{
@@ -205,18 +302,18 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		/// </summary>
 		public BackFillMode FillMode { get; set; } = BackFillMode.Solid;
 
-		private int _TransparencyLevel = 100;
+		private int _OpacityLevel = 100;
 		/// <summary>
 		/// The level of fill color trnsparency between 0..255
 		/// </summary>
-		public int TransparencyLevel
+		public int OpacityLevel
 		{
-			get { return _TransparencyLevel; }
+			get { return _OpacityLevel; }
 			set
 			{
-				if (value < 0) _TransparencyLevel = 0;
-				else if (value > 255) _TransparencyLevel = 255;
-				else _TransparencyLevel = value;
+				if (value < 0) _OpacityLevel = 0;
+				else if (value > 255) _OpacityLevel = 255;
+				else _OpacityLevel = value;
 			}
 		}
 
@@ -255,7 +352,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 				case BackFillMode.None: break;
 				case BackFillMode.Solid:
 					{
-						Color fColor = Color.FromArgb(TransparencyLevel, FillColor);
+						Color fColor = Color.FromArgb(OpacityLevel, FillColor);
 						using (SolidBrush fillBrush = new SolidBrush(fColor))
 						{
 							g.FillPath(fillBrush, Frame);
@@ -264,8 +361,8 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 					}
 				case BackFillMode.Gradient:
 					{
-						Color startColor = Color.FromArgb(TransparencyLevel, FillColor2);
-						Color endColor = Color.FromArgb(TransparencyLevel, FillColor);
+						Color startColor = Color.FromArgb(OpacityLevel, FillColor2);
+						Color endColor = Color.FromArgb(OpacityLevel, FillColor);
 						using (LinearGradientBrush fillBrush = new LinearGradientBrush(BaseRectangle, startColor, endColor, GradientMode))
 						{
 							g.FillPath(fillBrush, Frame);
@@ -288,7 +385,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		{
 			if (ContainsPoint(testPoint))
 			{
-				int hitTestWidth = FrameWidth > 30 ? FrameWidth : 30;
+				int hitTestWidth = FixedSize ? 1 : (FrameWidth > 10 ? FrameWidth : 10);
 				using (Pen hitTestPen = new Pen(Brushes.Black, hitTestWidth))
 				{
 					Point c = Center;
@@ -384,30 +481,61 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 	}
 
 	[Serializable]
-	public class AnnotationLabel : AnnotationRectangle
+	public class AnnotationLabel : AnnotationRectangle, IDisposable
 	{
 		#region Fields
+		public string _DisplayText;
+
+		[XmlIgnore]
 		/// <summary>
 		/// The label text
 		/// </summary>
-		public string DisplayText { get; set; }
+		public string DisplayText
+		{
+			get
+			{
+				return _DisplayText;
+			}
+			set
+			{
+				_DisplayText = value;
+				System.Drawing.Size textSize = System.Windows.Forms.TextRenderer.MeasureText(_DisplayText, DisplayFont);
+				BaseRectangle.Width = textSize.Width;
+				BaseRectangle.Height = textSize.Height;
+			}
+		}
+
+		/// <summary>
+		/// A serializable Font to use for rendering the text
+		/// </summary>
+		public XmlFont DisplayFont;
+
+		[XmlElement(Type = typeof(XmlColor))]
+		public Color FontColor = Color.Black;
 
 		/// <summary>
 		/// Label text positioning inside parent's BaseRectangle
 		/// </summary>
 		public ContentAlignment Alignment { get; set; } = ContentAlignment.MiddleCenter;
 
-		/// <summary>
-		/// The parent object of the label
-		/// </summary>
-		public AnnotationBaseObject Parent;
 		#endregion
 
 		#region Constructors
-		public AnnotationLabel() : base() { }
-		public AnnotationLabel(AnnotationBaseObject parent, string displayText, ContentAlignment alignement = ContentAlignment.MiddleCenter)
+		public AnnotationLabel() : base()
+		{
+			// We will calculate label size, do not allow the user to resize it
+			FixedSize = true;
+			// Mahe the label fully transparent
+			this.OpacityLevel = 0;
+			// Don't want a frame by default
+			this.FrameWidth = 0;
+			this.DisplayFont = new XmlFont();
+		}
+
+		public AnnotationLabel(AnnotationBaseObject parent, string displayText, ContentAlignment alignement = ContentAlignment.MiddleCenter) : this()
 		{
 			this.Parent = parent;
+			if (Parent != null) this.Viewer = parent.Viewer;
 			this.DisplayText = displayText;
 			this.Alignment = alignement;
 		}
@@ -416,18 +544,37 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		#region Public members
 		public override void Draw(Graphics g)
 		{
-			throw new NotImplementedException();
+			base.Draw(g);
+			using (Matrix m = g.Transform)
+			{
+				using (Matrix saveM = m.Clone())
+				{
+					//rotate the label around its center
+					using (var m2 = new Matrix(1, 0, 0, -1, 0, 2 * Center.Y))
+					{
+						m.Multiply(m2);
+					}
+					g.Transform = m;
+					SizeF StringSize = g.MeasureString(DisplayText, DisplayFont);
+					BaseRectangle.Width = (int)StringSize.Width;
+					BaseRectangle.Height = (int)StringSize.Height;
+					PointF textLocation = new PointF { X = BaseRectangle.X + BaseRectangle.Width / 2 - StringSize.Width / 2, Y = BaseRectangle.Y + BaseRectangle.Height / 2 - StringSize.Height / 2 };
+
+					using (Brush textBrush = new SolidBrush(FontColor))
+					{
+						g.DrawString(DisplayText, DisplayFont, textBrush, textLocation);
+					}
+
+					g.Transform = saveM;
+				}
+			}
 		}
 
-		public override AnnotationObjectRegion HitRegion(Point testPoint)
+		public void Dispose()
 		{
-			throw new NotImplementedException();
+			DisplayFont.Dispose();
 		}
 
-		public override bool ContainsPoint(Point testPoint)
-		{
-			return BaseRectangle.Contains(testPoint);
-		}
 		#endregion
 	}
 

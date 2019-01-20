@@ -817,7 +817,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
     void DrawingPanel_MouseDown(object sender, MouseEventArgs e)
     {
 			Point p1 = ScreenToSource(e.Location);
-			panel.SelectedAnnotationObject = _annotationObjects.FirstOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
+			panel.SelectedAnnotationObject = _annotationObjects.SelectMany(a => a.MeAndMyChildren()).FirstOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
 			OnMouseDown(e);
     }
 
