@@ -168,8 +168,10 @@ namespace Microsoft.Msagl.GraphViewerGdi
         else
         {
           bitmap = new Bitmap(w, h, PixelFormat.Format32bppPArgb);
-          using (Graphics graphics = Graphics.FromImage(bitmap))
-            DrawGeneral(w, h, graphics);
+					using (Graphics graphics = Graphics.FromImage(bitmap))
+					{
+						DrawGeneral(w, h, graphics);
+					}
         }
 
         AdjustFileName();
@@ -209,6 +211,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 
       graphics.Transform = new Matrix((float)s, 0, 0, (float)-s, (float)x, (float)y);
       Draw.DrawPrecalculatedLayoutObject(graphics, gViewer.DGraph);
+			gViewer.AnnotationObjects.ForEach(ao => ao.Draw(graphics));
     }
 
     void DrawCurrent(Graphics graphics)
