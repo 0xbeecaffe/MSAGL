@@ -10,6 +10,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 	/// <summary>
 	/// XmlFont is a serializable wrapper object around System.Drawing.Font
 	/// </summary>
+	[Serializable]
 	public class XmlFont : IDisposable
 	{
 		private Font _font = null;
