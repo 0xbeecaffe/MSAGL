@@ -172,16 +172,20 @@ namespace Microsoft.Msagl.GraphViewerGdi
 				// Here, we get a chance to process AnnotationObject selection and move
 				if (_draggedAnnotationObject.aObject == null)
 				{
-					_draggedAnnotationObject.aObject = SelectedAnnotationObject;
-					if (_draggedAnnotationObject.aObject != null)
+					// do not drag a locked annotation object
+					if (!SelectedAnnotationObject?.Locked ?? false)
 					{
-						_draggedAnnotationObject.hitRegion = _draggedAnnotationObject.aObject.HitRegion(p1);
-						_annotationHitOffset = new Size((int)p1.X - _draggedAnnotationObject.aObject.BaseRectangle.X, (int)p1.Y - _draggedAnnotationObject.aObject.BaseRectangle.Y);
-						return;
-					}
-					else
-					{
-						_draggedAnnotationObject.hitRegion = AnnotationObjectRegion.None;
+						_draggedAnnotationObject.aObject = SelectedAnnotationObject;
+						if (_draggedAnnotationObject.aObject != null)
+						{
+							_draggedAnnotationObject.hitRegion = _draggedAnnotationObject.aObject.HitRegion(p1);
+							_annotationHitOffset = new Size((int)p1.X - _draggedAnnotationObject.aObject.BaseRectangle.X, (int)p1.Y - _draggedAnnotationObject.aObject.BaseRectangle.Y);
+							return;
+						}
+						else
+						{
+							_draggedAnnotationObject.hitRegion = AnnotationObjectRegion.None;
+						}
 					}
 				}
 				#endregion
@@ -250,7 +254,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			if (args.Button == MouseButtons.None)
 			{
 				var overAnnotationObject = GViewer._annotationObjects.SelectMany(a => a.MeAndMyChildren()).FirstOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
-				if (overAnnotationObject != null)
+				if (overAnnotationObject != null && !overAnnotationObject.Locked)
 				{
 					AnnotationObjectRegion hr = overAnnotationObject.HitRegion(p1);
 					// if hit on object body

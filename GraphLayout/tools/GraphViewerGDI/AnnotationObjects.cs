@@ -49,6 +49,10 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		/// </summary>
 		public bool FixedSize = false;
 		/// <summary>
+		/// Objects cannot be moved or resized when blocked
+		/// </summary>
+		public bool Locked = false;
+		/// <summary>
 		/// The parent object of the label
 		/// </summary>
 		[NonSerialized, XmlIgnore]
@@ -385,7 +389,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		{
 			if (ContainsPoint(testPoint))
 			{
-				int hitTestWidth = FixedSize ? 1 : (FrameWidth > 10 ? FrameWidth : 10);
+				int hitTestWidth = FixedSize ? 1 : (FrameWidth > 30 ? FrameWidth : 30);
 				using (Pen hitTestPen = new Pen(Brushes.Black, hitTestWidth))
 				{
 					Point c = Center;
@@ -562,6 +566,19 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 
 					using (Brush textBrush = new SolidBrush(FontColor))
 					{
+						//
+						// See https://www.igloocoder.com/2010/06/09/Rotating-text-using-Graphics-DrawString/
+						//
+						//var stringFormat = new StringFormat
+						//{
+						//	Alignment = StringAlignment.Near,
+						//	LineAlignment = StringAlignment.Near
+						//};
+						//PointF transformCoordinate = new PointF(textLocation.X,textLocation.Y);
+						//g.TranslateTransform(transformCoordinate.X, transformCoordinate.Y);
+						//g.RotateTransform(0);
+						//g.DrawString(DisplayText, DisplayFont, textBrush, textLocation, stringFormat);
+
 						g.DrawString(DisplayText, DisplayFont, textBrush, textLocation);
 					}
 
