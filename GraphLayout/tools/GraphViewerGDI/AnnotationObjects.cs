@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Xml.Serialization;
@@ -16,7 +17,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 	[XmlInclude(typeof(AnnotationEllipse))]
 	[XmlInclude(typeof(AnnotationRectangle))]
 	[XmlInclude(typeof(AnnotationLabel))]
-	public abstract class AnnotationBaseObject
+	public abstract class AnnotationBaseObject : ICloneable
 	{
 		#region Fields
 		/// <summary>
@@ -137,7 +138,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		public List<AnnotationBaseObject> MeAndMyChildren()
 		{
 			List<AnnotationBaseObject> aItems = Children.SelectMany(c => c.MeAndMyChildren()).ToList();
-			aItems.Add(this);
+			aItems.Insert(0, this);
 			return aItems;
 		}
 
@@ -157,7 +158,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		/// <summary>
 		/// Brings the object one layer forward
 		/// </summary>
-		public void SendBackward()
+		public void BringForward()
 		{
 			if (Viewer != null)
 			{
@@ -176,7 +177,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		/// <summary>
 		/// Brings the object to front
 		/// </summary>
-		public void SendToBack()
+		public void BringToFront()
 		{
 			if (Viewer != null)
 			{
@@ -211,7 +212,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		/// <summary>
 		/// Sends the object one layer backward
 		/// </summary>
-		public void BringForward()
+		public void SendBackward()
 		{
 			if (Viewer != null)
 			{
@@ -229,7 +230,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		/// <summary>
 		/// Sends the object to the back
 		/// </summary>
-		public void BringToFront()
+		public void SendToBack()
 		{
 			if (Viewer != null)
 			{
@@ -267,6 +268,17 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		/// <param name="testPoint"></param>
 		/// <returns></returns>
 		public abstract bool ContainsPoint(Point testPoint);
+
+		public object Clone()
+		{
+			XmlSerializer ser = new XmlSerializer(this.GetType());
+			using (MemoryStream ms = new MemoryStream())
+			{
+				ser.Serialize(ms, this);
+				ms.Position = 0;
+				return ser.Deserialize(ms);
+			}
+		}
 		#endregion
 	};
 
