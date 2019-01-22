@@ -33,6 +33,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Drawing.Text;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using Microsoft.Msagl.Drawing;
 
@@ -210,9 +211,10 @@ namespace Microsoft.Msagl.GraphViewerGdi
       double y = 0.5 * h + s * (g.Bottom + 0.5 * g.Height);
 
       graphics.Transform = new Matrix((float)s, 0, 0, (float)-s, (float)x, (float)y);
+			gViewer.AnnotationObjects.Where(ao => ao.Layer == Annotation.AnnotationObjectLayer.Background).ToList().ForEach(ao => ao.Draw(graphics));
       Draw.DrawPrecalculatedLayoutObject(graphics, gViewer.DGraph);
-			gViewer.AnnotationObjects.ForEach(ao => ao.Draw(graphics));
-    }
+			gViewer.AnnotationObjects.Where(ao => ao.Layer == Annotation.AnnotationObjectLayer.Foreground).ToList().ForEach(ao => ao.Draw(graphics));
+		}
 
     void DrawCurrent(Graphics graphics)
     {
