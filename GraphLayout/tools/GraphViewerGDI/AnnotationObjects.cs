@@ -54,6 +54,10 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		/// </summary>
 		public bool Locked = false;
 		/// <summary>
+		/// Determines if the object is visually selected in Viewer
+		/// </summary>
+		public bool Selected = false;
+		/// <summary>
 		/// The parent object of the label
 		/// </summary>
 		[NonSerialized, XmlIgnore]
@@ -294,6 +298,12 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		[XmlElement(Type = typeof(XmlColor))]
 		public Color FrameColor { get; set; } = Color.CornflowerBlue;
 
+		/// <summary>
+		/// The contour color of the object when selected
+		/// </summary>
+		[XmlElement(Type = typeof(XmlColor))]
+		public Color SelectedFrameColor { get; set; } = Color.Red;
+
 		public int FrameWidth { get; set; } = 1;
 
 		/// <summary>
@@ -350,7 +360,8 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		{
 			get
 			{
-				return new SolidBrush(FrameColor);
+				if (Selected) return new SolidBrush(SelectedFrameColor);
+				else return new SolidBrush(FrameColor);
 			}
 		}
 
