@@ -404,6 +404,13 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 					g.DrawPath(p, Frame);
 				}
 			}
+			else if (Selected)
+			{
+				using (Pen p = new Pen(DrawingBrush, 1))
+				{
+					g.DrawPath(p, Frame);
+				}
+			}
 
 			base.Draw(g);
 		}

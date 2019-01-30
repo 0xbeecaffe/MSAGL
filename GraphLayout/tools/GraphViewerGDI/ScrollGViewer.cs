@@ -73,6 +73,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		bool zoomWhenMouseWheelScroll = true;
 
 		const string panButtonToolTipText = "Pan";
+
 		public RectangleF srcRect { get; private set; } = new RectangleF(0, 0, 0, 0);
 
 		internal double zoomFraction = 0.5f;
@@ -517,25 +518,40 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			var m = Transform.Inverse;
 			var rec = new Core.Geometry.Rectangle(m * (new Point(0, 0)), m * new Point(w, h));
 			// combine originalGraph.BoundingBox with AnnotationObjectsBoundingBox
-			var combinedRec = _annotationObjects.Count > 0 ? Core.Geometry.Rectangle.Union(originalGraph.BoundingBox, AnnotationObjectsBoundingBox) : originalGraph.BoundingBox;
+			var combinedRec = CombinedSize;
 			rec = Core.Geometry.Rectangle.Intersect(combinedRec, rec);
 			srcRect = new RectangleF((float)rec.Left, (float)rec.Bottom, (float)rec.Width, (float)rec.Height);
 		}
 
 		/// <summary>
-		/// Calculates the bounding box of all annotation objects
+		/// Returns the combined size of Graph bounding box and Annotation objects bouding box
 		/// </summary>
-		Core.Geometry.Rectangle AnnotationObjectsBoundingBox
+		public Core.Geometry.Rectangle CombinedSize
 		{
 			get
 			{
-				int panning = 3;
-				int minLeft = _annotationObjects.Min(a => a.BaseRectangle.Left) - panning;
-				int maxRight = _annotationObjects.Max(a => a.BaseRectangle.Right) + panning;
-				int minTop = _annotationObjects.Min(a => a.BaseRectangle.Top) - panning;
-				int maxBottom = _annotationObjects.Max(a => a.BaseRectangle.Bottom) + panning;
-				Core.Geometry.Rectangle r = new Core.Geometry.Rectangle(minLeft, minTop, new Point(maxRight - minLeft, maxBottom - minTop));
-				return r;
+				return _annotationObjects.Count > 0 ? Core.Geometry.Rectangle.Union(originalGraph.BoundingBox, AnnotationObjectsBoundingBox) : originalGraph.BoundingBox;
+			}
+		}
+
+		/// <summary>
+		/// Calculates the bounding box of all annotation objects
+		/// </summary>
+		public Core.Geometry.Rectangle AnnotationObjectsBoundingBox
+		{
+			get
+			{
+				if (_annotationObjects.Count > 0)
+				{
+					int panning = 3;
+					int minLeft = _annotationObjects.Min(a => a.BaseRectangle.Left) - panning;
+					int maxRight = _annotationObjects.Max(a => a.BaseRectangle.Right) + panning;
+					int minTop = _annotationObjects.Min(a => a.BaseRectangle.Top) - panning;
+					int maxBottom = _annotationObjects.Max(a => a.BaseRectangle.Bottom) + panning;
+					Core.Geometry.Rectangle r = new Core.Geometry.Rectangle(minLeft, minTop, new Point(maxRight - minLeft, maxBottom - minTop));
+					return r;
+				}
+				else return new Core.Geometry.Rectangle(0, 0, 0, 0);
 			}
 		}
 
