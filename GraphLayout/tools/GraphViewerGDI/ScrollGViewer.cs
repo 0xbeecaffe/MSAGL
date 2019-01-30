@@ -820,7 +820,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			// only select any annotation when SelectedObject is null or other annotation object
 			if (SelectedObject == null || SelectedObject is AnnotationBaseObject)
 			{
-				_annotationObjects.ForEach(ao => ao.Selected = false);
+				_annotationObjects.SelectMany(ao => ao.MeAndMyChildren()).ToList().ForEach(ao => ao.Selected = false);
 				panel.SelectedAnnotationObject = _annotationObjects.SelectMany(a => a.MeAndMyChildren()).LastOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
 				if (panel.SelectedAnnotationObject != null)
 				{
