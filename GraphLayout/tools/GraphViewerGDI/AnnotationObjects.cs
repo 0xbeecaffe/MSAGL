@@ -212,7 +212,9 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 			void OffsetChildren(AnnotationBaseObject parent, Point offsetBy)
 			{
 				parent.Children.ForEach(c => OffsetChildren(c, offsetBy));
-				parent.BaseRectangle.Offset(offsetBy);
+				Rectangle br = parent.BaseRectangle;
+				br.Offset(offsetBy);
+				parent.BaseRectangle = br;
 			}
 		}
 
