@@ -662,7 +662,8 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 			get
 			{
 				var path = new GraphicsPath();
-				path.AddCurve(CurvePoints);
+				var curvePoints = CurvePoints;
+				if (curvePoints.Length > 1) path.AddCurve(curvePoints);
 				return path;
 			}
 		}
@@ -719,8 +720,12 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 
 		public override AnnotationObjectRegion HitRegion(Point testPoint)
 		{
-			// Returning Body, because this object may not be resized
-			return AnnotationObjectRegion.Body;
+			if (ContainsPoint(testPoint))
+			{
+				// Returning Body, because this object may not be resized
+				return AnnotationObjectRegion.Body;
+			}
+			else return AnnotationObjectRegion.None;
 		}
 		#endregion
 	}
