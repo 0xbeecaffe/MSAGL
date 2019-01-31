@@ -36,7 +36,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		/// <summary>
 		/// The base rectangle of the object
 		/// </summary>
-		public Rectangle BaseRectangle = new Rectangle(0, 0, 0, 0);
+		public virtual Rectangle BaseRectangle { get; set; } = new Rectangle(0, 0, 0, 0);
 		/// <summary>
 		/// Any child objects associated to this object
 		/// </summary>
@@ -91,10 +91,13 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		public void AddChild(AnnotationBaseObject child)
 		{
 			child.Parent = this;
-			if (child.BaseRectangle.Left < this.BaseRectangle.Left) child.BaseRectangle.X = this.BaseRectangle.X;
-			if (child.BaseRectangle.Top < this.BaseRectangle.Top) child.BaseRectangle.Y = this.BaseRectangle.Y;
-			if (child.BaseRectangle.Right > this.BaseRectangle.Right) child.BaseRectangle.Width -= (child.BaseRectangle.Right - this.BaseRectangle.Right);
-			if (child.BaseRectangle.Bottom > this.BaseRectangle.Bottom) child.BaseRectangle.Height -= (child.BaseRectangle.Bottom - this.BaseRectangle.Top);
+			Rectangle childBaseRectangle = BaseRectangle;
+
+			if (child.BaseRectangle.Left < this.BaseRectangle.Left) childBaseRectangle.X = this.BaseRectangle.X;
+			if (child.BaseRectangle.Top < this.BaseRectangle.Top) childBaseRectangle.Y = this.BaseRectangle.Y;
+			if (child.BaseRectangle.Right > this.BaseRectangle.Right) childBaseRectangle.Width -= (child.BaseRectangle.Right - this.BaseRectangle.Right);
+			if (child.BaseRectangle.Bottom > this.BaseRectangle.Bottom) childBaseRectangle.Height -= (child.BaseRectangle.Bottom - this.BaseRectangle.Top);
+			child.BaseRectangle = childBaseRectangle;
 			Children.Add(child);
 			Viewer?.Invalidate();
 		}
@@ -214,6 +217,70 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		}
 
 		/// <summary>
+		/// Gets or sets the X coordinate of location
+		/// </summary>
+		public virtual int X
+		{
+			get { return BaseRectangle.X; }
+			set
+			{
+				Rectangle br = BaseRectangle;
+				br.X = value;
+				BaseRectangle = br;
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Y coordinate of location
+		/// </summary>
+		public virtual int Y
+		{
+			get { return BaseRectangle.Y; }
+			set
+			{
+				Rectangle br = BaseRectangle;
+				br.Y = value;
+				BaseRectangle = br;
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Width of BaseRectangle
+		/// </summary>
+		/// <param name="width"></param>
+		public virtual int Width
+		{
+			get
+			{
+				return BaseRectangle.Width;
+			}
+			set
+			{
+				Rectangle br = BaseRectangle;
+				br.Width = value;
+				BaseRectangle = br;
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the Width of BaseRectangle
+		/// </summary>
+		/// <param name="width"></param>
+		public virtual int Height
+		{
+			get
+			{
+				return BaseRectangle.Height;
+			}
+			set
+			{
+				Rectangle br = BaseRectangle;
+				br.Height = value;
+				BaseRectangle = br;
+			}
+		}
+
+		/// <summary>
 		/// Sends the object one layer backward
 		/// </summary>
 		public void SendBackward()
@@ -285,6 +352,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		}
 		#endregion
 	};
+
 
 	/// <summary>
 	/// Assumes that this type of Annotation object has a well defined contour
@@ -494,6 +562,170 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 	}
 
 	/// <summary>
+	/// Implements an abstract base Curve annotation object. A descendant must implement a way to provide CurvePoints.
+	/// </summary>
+	[Serializable]
+	public abstract class AnnotationCurveBase : AnnotationBaseObject
+	{
+		#region Constructors
+		public AnnotationCurveBase() : base()
+		{
+			Locked = true;
+		}
+		#endregion
+
+		#region Properties
+		/// <summary>
+		/// The line color of the curve
+		/// </summary>
+		[XmlElement(Type = typeof(XmlColor))]
+		public Color LineColor { get; set; } = Color.AliceBlue;
+
+		/// <summary>
+		/// The line color of the curve if object is selected
+		/// </summary>
+		[XmlElement(Type = typeof(XmlColor))]
+		public Color SelectedLineColor { get; set; } = Color.Red;
+
+		/// <summary>
+		/// The width of the curve line
+		/// </summary>
+		public int LineWidth { get; set; } = 1;
+
+		/// <summary>
+		/// The opacity level of the curve line
+		/// </summary>
+		public int LineOpacity { get; set; } = 255;
+
+		/// <summary>
+		/// Provides the curve points
+		/// </summary>
+		public abstract PointF[] CurvePoints { get; }
+
+		/// <summary>
+		/// Defines the LineCap at starting point
+		/// </summary>
+		public LineCap StartLineCap { get; set; } = LineCap.Round;
+
+		/// <summary>
+		/// Defines the LineCap and ending point
+		/// </summary>
+		public LineCap EndLineCap { get; set; } = LineCap.ArrowAnchor;
+
+		/// <summary>
+		/// Gets the BaseRectangle which is calculated from CurvePoints. Value may not be set.
+		/// </summary>
+		public override Rectangle BaseRectangle
+		{
+			get
+			{
+				var cp = CurvePoints;
+				if (cp.Length > 0)
+				{
+					float minX = cp.Min(p => p.X);
+					float maxX = cp.Max(p => p.X);
+					float minY = cp.Min(p => p.Y);
+					float maxY = cp.Max(p => p.Y);
+					return new Rectangle(new Point((int)minX, (int)minY), new System.Drawing.Size((int)(maxX - minX), (int)(maxY - minY)));
+				}
+				else return new Rectangle(0, 0, 0, 0);
+			}
+			set { }
+		}
+
+		/// <summary>
+		/// Gets the width of BaseRectangle. Value may not be set.
+		/// </summary>
+		public override int Width { get => base.Width; set { } }
+
+		/// <summary>
+		/// Gets the Height of BaseRectangle. Value may not be set.
+		/// </summary>
+		public override int Height { get => base.Height; set { } }
+
+		/// <summary>
+		/// Gets the X coordinate of location Value may not be set.
+		/// </summary>
+		public override int X { get => base.X; set { } }
+
+		/// <summary>
+		/// Gets the Y coordinate of location Value may not be set.
+		/// </summary>
+		public override int Y { get => base.Y; set { } }
+
+		#endregion
+
+		#region Public Methods
+
+		public virtual GraphicsPath Curve
+		{
+			get
+			{
+				var path = new GraphicsPath();
+				path.AddCurve(CurvePoints);
+				return path;
+			}
+		}
+
+		public virtual Pen DrawingPen
+		{
+			get
+			{
+				Pen p = new Pen(DrawingBrush, LineWidth);
+				p.SetLineCap(StartLineCap, EndLineCap, DashCap.Round);
+				return p;
+			}
+		}
+
+		public virtual Brush DrawingBrush
+		{
+			get
+			{
+				if (Selected) return new SolidBrush(SelectedLineColor);
+				else
+				{
+					Color brushColor = Color.FromArgb(LineOpacity, LineColor);
+					return new SolidBrush(brushColor);
+				}
+			}
+		}
+
+		public override bool ContainsPoint(Point testPoint)
+		{
+			using (var r = new Region(Curve))
+			{
+				return r.IsVisible(testPoint);
+			}
+		}
+
+		/// <summary>
+		/// Draws the object using the Curve path
+		/// </summary>
+		/// <param name="g"></param>
+		public override void Draw(Graphics g)
+		{
+			if (g == null) return;
+			if (BaseRectangle.Width == 0 || BaseRectangle.Height == 0) return;
+			// --
+			if (LineWidth > 0)
+			{
+				using (var p = DrawingPen)
+				{
+					g.DrawPath(p, Curve);
+				}
+			}
+			base.Draw(g);
+		}
+
+		public override AnnotationObjectRegion HitRegion(Point testPoint)
+		{
+			// Returning Body, because this object may not be resized
+			return AnnotationObjectRegion.Body;
+		}
+		#endregion
+	}
+
+	/// <summary>
 	/// A rectangle object
 	/// </summary>
 	[Serializable]
@@ -534,8 +766,10 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 			{
 				_DisplayText = value;
 				System.Drawing.Size textSize = System.Windows.Forms.TextRenderer.MeasureText(_DisplayText, DisplayFont);
-				BaseRectangle.Width = textSize.Width;
-				BaseRectangle.Height = textSize.Height;
+				Rectangle newBaseRectangle = this.BaseRectangle;
+				newBaseRectangle.Width = textSize.Width;
+				newBaseRectangle.Height = textSize.Height;
+				BaseRectangle = newBaseRectangle;
 			}
 		}
 
@@ -590,8 +824,10 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 					}
 					g.Transform = m;
 					SizeF StringSize = g.MeasureString(DisplayText, DisplayFont);
-					BaseRectangle.Width = (int)StringSize.Width;
-					BaseRectangle.Height = (int)StringSize.Height;
+					Rectangle newBaseRectangle = this.BaseRectangle;
+					newBaseRectangle.Width = (int)StringSize.Width;
+					newBaseRectangle.Height = (int)StringSize.Height;
+					BaseRectangle = newBaseRectangle;
 					PointF textLocation = new PointF { X = BaseRectangle.X + BaseRectangle.Width / 2 - StringSize.Width / 2, Y = BaseRectangle.Y + BaseRectangle.Height / 2 - StringSize.Height / 2 };
 
 					using (Brush textBrush = new SolidBrush(FontColor))

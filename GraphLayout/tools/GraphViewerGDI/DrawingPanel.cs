@@ -299,15 +299,15 @@ namespace Microsoft.Msagl.GraphViewerGdi
 								int w = ao.BaseRectangle.Width - ((int)p1.X - ao.BaseRectangle.X);
 								if (w > 5)
 								{
-									ao.BaseRectangle.X = (int)p1.X;
-									ao.BaseRectangle.Width = w;
+									ao.X = (int)p1.X;
+									ao.Width = w;
 								}
 								break;
 							}
 						case AnnotationObjectRegion.EdgeRight:
 							{
 								int w = (int)p1.X - ao.BaseRectangle.X;
-								if (w > 5) ao.BaseRectangle.Width = w;
+								if (w > 5) ao.Width = w;
 								break;
 							}
 						case AnnotationObjectRegion.EdgeTop:
@@ -315,15 +315,15 @@ namespace Microsoft.Msagl.GraphViewerGdi
 								int h = ao.BaseRectangle.Height - ((int)p1.Y - ao.BaseRectangle.Y);
 								if (h > 5)
 								{
-									ao.BaseRectangle.Y = (int)p1.Y;
-									ao.BaseRectangle.Height = h;
+									ao.Y = (int)p1.Y;
+									ao.Height = h;
 								}
 								break;
 							}
 						case AnnotationObjectRegion.EdgeBottom:
 							{
 								int h = (int)p1.Y - ao.BaseRectangle.Y;
-								if (h > 5) ao.BaseRectangle.Height = h;
+								if (h > 5) ao.Height = h;
 								break;
 							}
 					}
