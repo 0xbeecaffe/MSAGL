@@ -55,7 +55,7 @@ namespace Microsoft.Msagl.Drawing
     /// <summary>
     /// If this delegate is not null and returns true then no node rendering is done
     /// </summary>
-    public DelegateToOverrideNodeRendering DrawNodeDelegate
+    public DelegateToOverrideNodeRendering PostDrawNodeDelegate
     {
       get { return postDrawNodeDelegate; }
       set { postDrawNodeDelegate = value; }
@@ -63,7 +63,7 @@ namespace Microsoft.Msagl.Drawing
     /// <summary>
     /// Will be called after drawing completed
     /// </summary>
-    public DelegateToOverrideNodeRendering PostDrawNodeDelegate
+    public DelegateToOverrideNodeRendering DrawNodeDelegate
     {
       get { return drawNodeDelegate; }
       set { drawNodeDelegate = value; }
