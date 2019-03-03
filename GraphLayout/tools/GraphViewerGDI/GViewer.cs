@@ -2115,33 +2115,40 @@ namespace Microsoft.Msagl.GraphViewerGdi
 
 		}
 
-		public void ShowLayoutSettingsEditor()
+		/// <summary>
+		/// Opens the LayoutSettingsForm. Returns true if settings have changed in which case the layout must be recalculated !
+		/// </summary>
+		/// <returns></returns>
+		public bool ShowLayoutSettingsEditor()
 		{
-			LayoutSettingsIsClicked();
+			return LayoutSettingsIsClicked();
 		}
 
 
-		void LayoutSettingsIsClicked()
+		bool LayoutSettingsIsClicked()
 		{
+			bool layoutAlgorithmHasChanged = false;
 			var layoutSettingsForm = new LayoutSettingsForm();
-			var wrapper = new LayoutSettingsWrapper
-			{ LayoutSettings = Graph != null ? Graph.LayoutAlgorithmSettings : null };
+			var wrapper = new LayoutSettingsWrapper { LayoutSettings = Graph != null ? Graph.LayoutAlgorithmSettings : null };
 			wrapper.LayoutTypeHasChanged += OnLayoutTypeChange;
 			wrapper.LayoutMethod = CurrentLayoutMethod;
-			switch (CurrentLayoutMethod)
+			if (wrapper.LayoutSettings == null)
 			{
-				case LayoutMethod.SugiyamaScheme:
-					wrapper.LayoutSettings = sugiyamaSettings;
-					break;
-				case LayoutMethod.MDS:
-					wrapper.LayoutSettings = mdsLayoutSettings;
-					break;
-				case LayoutMethod.Ranking:
-					wrapper.LayoutSettings = rankingSettings;
-					break;
-				case LayoutMethod.IcrementalLayout:
-					wrapper.LayoutSettings = fastIncrementalLayoutSettings;
-					break;
+				switch (CurrentLayoutMethod)
+				{
+					case LayoutMethod.SugiyamaScheme:
+						wrapper.LayoutSettings = sugiyamaSettings;
+						break;
+					case LayoutMethod.MDS:
+						wrapper.LayoutSettings = mdsLayoutSettings;
+						break;
+					case LayoutMethod.Ranking:
+						wrapper.LayoutSettings = rankingSettings;
+						break;
+					case LayoutMethod.IcrementalLayout:
+						wrapper.LayoutSettings = fastIncrementalLayoutSettings;
+						break;
+				}
 			}
 			layoutSettingsForm.PropertyGrid.SelectedObject = wrapper;
 			LayoutAlgorithmSettings backup = Graph != null ? Graph.LayoutAlgorithmSettings.Clone() : null;
@@ -2149,6 +2156,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			{
 				if (Graph != null)
 				{
+					layoutAlgorithmHasChanged = true;
 					LayoutAlgorithmSettings settings = Graph.LayoutAlgorithmSettings;
 					if (settings.EdgeRoutingSettings.EdgeRoutingMode == EdgeRoutingMode.SplineBundling)
 					{
@@ -2159,14 +2167,10 @@ namespace Microsoft.Msagl.GraphViewerGdi
 					if (!(settings is SugiyamaLayoutSettings)) //fix wrong settings coming from the Sugiyama
 						if (settings.EdgeRoutingSettings.EdgeRoutingMode == EdgeRoutingMode.SugiyamaSplines)
 							settings.EdgeRoutingSettings.EdgeRoutingMode = EdgeRoutingMode.Spline;
-					if (layoutSettingsForm.Wrapper.RerouteOnly == false)
-						Graph = Graph; //recalculate the layout
-					else
-						RerouteGraph();
 				}
 			}
-			else if (Graph != null)
-				Graph.LayoutAlgorithmSettings = backup;
+			else if (Graph != null)	Graph.LayoutAlgorithmSettings = backup;
+			return layoutAlgorithmHasChanged;
 		}
 
 		/// <summary>

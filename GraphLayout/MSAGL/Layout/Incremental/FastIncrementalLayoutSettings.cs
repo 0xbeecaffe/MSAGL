@@ -542,11 +542,11 @@ namespace Microsoft.Msagl.Layout.Incremental {
         {
             get
             {
-                return algorithm.CurrentConstraintLevel;
+                return algorithm?.CurrentConstraintLevel ?? 0;
             }
             set
             {
-                algorithm.CurrentConstraintLevel = value;
+                if (algorithm != null) algorithm.CurrentConstraintLevel = value;
             }
         }
 

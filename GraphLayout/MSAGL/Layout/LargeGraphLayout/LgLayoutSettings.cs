@@ -14,7 +14,10 @@ namespace Microsoft.Msagl.Layout.LargeGraphLayout
     /// </summary>
     public class LgLayoutSettings : LayoutAlgorithmSettings
     {
-
+				/// <summary>
+				/// layout settings to handle a large graph
+				/// </summary>
+				public LgLayoutSettings() { }
         public int maximumNumOfLayers;
         public double mainGeometryGraphWidth;
         public double mainGeometryGraphHeight;
