@@ -696,6 +696,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		public void Invalidate(IViewerObject objectToInvalidate)
 		{
 			var dObject = (DObject)objectToInvalidate;
+			if (dObject == null) return;
 			dObject.Invalidate();
 			ClearBoundingBoxHierarchy();
 			Core.Geometry.Rectangle box = dObject.RenderedBox; //copying aside he previous rendering box
