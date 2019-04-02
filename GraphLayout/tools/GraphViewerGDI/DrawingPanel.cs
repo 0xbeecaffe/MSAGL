@@ -69,9 +69,9 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			set { gViewer = value; }
 		}
 		/// <summary>
-		/// The Anotation object last hit by mouseDown event. Cleared on mouseUp
+		/// The Annotation object last hit by mouseDown event. Cleared on mouseUp
 		/// </summary>
-		AnnotationObjectHit _draggedAnnotationObject;
+		private AnnotationObjectHit _draggedAnnotationObject;
 		/// <summary>
 		/// The Annotation object last selected
 		/// </summary>
@@ -79,16 +79,18 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		/// <summary>
 		/// The cursor position from top-left corner of _hitAnnotationObject when hit
 		/// </summary>
-		Size _annotationHitOffset;
+		private Size _annotationHitOffset;
+		/// <summary>
+		/// The Annotation object the mouse hovers last time
+		/// </summary>
+		private AnnotationBaseObject _lastHoverdAnnotationObejct { get; set; }
 
 		DraggingMode MouseDraggingMode
 		{
 			get
 			{
-				if (gViewer.panButton.Pushed)
-					return DraggingMode.Pan;
-				if (gViewer.windowZoomButton.Pushed)
-					return DraggingMode.WindowZoom;
+				if (gViewer.panButton.Pushed) return DraggingMode.Pan;
+				if (gViewer.windowZoomButton.Pushed) return DraggingMode.WindowZoom;
 				return DraggingMode.Default;
 			}
 		}
@@ -253,15 +255,15 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			Cursor annotationCursor = Cursors.Default;
 			if (args.Button == MouseButtons.None)
 			{
-				var overAnnotationObject = GViewer._annotationObjects.SelectMany(a => a.MeAndMyChildren()).LastOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
-				if (overAnnotationObject != null && !overAnnotationObject.Locked)
+				var hoverAnnotationObject = GViewer._annotationObjects.SelectMany(a => a.MeAndMyChildren()).LastOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
+				if (hoverAnnotationObject != null && !hoverAnnotationObject.Locked)
 				{
-					AnnotationObjectRegion hr = overAnnotationObject.HitRegion(p1);
+					AnnotationObjectRegion hr = hoverAnnotationObject.HitRegion(p1);
 					// if hit on object body
 					if ((hr & AnnotationObjectRegion.Body) == hr) annotationCursor = Cursors.SizeAll;
 					else
 					{
-						if (!overAnnotationObject.FixedSize)
+						if (!hoverAnnotationObject.FixedSize)
 						{
 							// hit on edge
 							switch (hr)
@@ -282,6 +284,8 @@ namespace Microsoft.Msagl.GraphViewerGdi
 						}
 					}
 				}
+				if (_lastHoverdAnnotationObejct != hoverAnnotationObject) gViewer.RaiseAnnotationHoverEvent(new AnnotationObjectUnderMouseCursorChangedEventArgs(_lastHoverdAnnotationObejct, hoverAnnotationObject));
+				_lastHoverdAnnotationObejct = hoverAnnotationObject;
 			}
 			if (_draggedAnnotationObject.aObject != null && args.Button == MouseButtons.Left)
 			{

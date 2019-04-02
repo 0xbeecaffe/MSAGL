@@ -925,6 +925,34 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 	{
 		public AnnotationBaseObject aObject;
 		public AnnotationObjectRegion hitRegion;
+	}
 
+	/// <summary>
+	/// arguments for the event of changing the annotation object under the mouse cursor
+	/// </summary>
+	public class AnnotationObjectUnderMouseCursorChangedEventArgs : EventArgs
+	{
+		/// <summary>
+		/// The old object under the mouse
+		/// </summary>
+		public AnnotationBaseObject OldObject { get; set; }
+		/// <summary>
+		/// the new object under the mouse
+		/// </summary>
+		/// <summary>
+		public AnnotationBaseObject NewObject { get; set; }
+		/// constructor
+		/// </summary>
+		/// <param name="oldObject"></param>
+		/// <param name="newObject"></param>
+		public AnnotationObjectUnderMouseCursorChangedEventArgs(AnnotationBaseObject oldObject, AnnotationBaseObject newObject)
+		{
+			OldObject = oldObject;
+			NewObject = newObject;
+		}
+		/// <summary>
+		/// an empty constructor
+		/// </summary>
+		public AnnotationObjectUnderMouseCursorChangedEventArgs() { }
 	}
 }

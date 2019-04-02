@@ -666,8 +666,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		{
 			get
 			{
-				if (MousePositonWhenSetSelectedObject != MousePosition)
-					UnconditionalHit(null, EntityFilterDelegate);
+				if (MousePositonWhenSetSelectedObject != MousePosition)	UnconditionalHit(null, EntityFilterDelegate);
 				return selectedDObject;
 			}
 		}
@@ -1277,6 +1276,11 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		public event EventHandler<ObjectUnderMouseCursorChangedEventArgs> ObjectUnderMouseCursorChanged;
 
 		/// <summary>
+		/// the event raised when the annotation object under the mouse cursor changes
+		/// </summary>
+		public event EventHandler<AnnotationObjectUnderMouseCursorChangedEventArgs> AnnotationObjectUnderMouseCursorChanged;
+
+		/// <summary>
 		/// the padding used to route a new inserted edge around the nodes
 		/// </summary>        
 		public double PaddingForEdgeRouting
@@ -1511,25 +1515,19 @@ namespace Microsoft.Msagl.GraphViewerGdi
 
 		void UnconditionalHit(MouseEventArgs args, EntityFilterDelegate filter)
 		{
-			System.Drawing.Point point = args != null
-																			 ? new System.Drawing.Point(args.X, args.Y)
-																			 : DrawingPanel.PointToClient(MousePosition);
-
+			System.Drawing.Point point = args != null ? new System.Drawing.Point(args.X, args.Y) : DrawingPanel.PointToClient(MousePosition);
 			object old = selectedDObject;
-			if (bBNode == null && DGraph != null)
-				bBNode = DGraph.BBNode;
+			if (bBNode == null && DGraph != null) bBNode = DGraph.BBNode;
 			if (bBNode != null)
 			{
 				var subgraphs = new List<Geometry>();
-				Geometry geometry = bBNode.Hit(ScreenToSource(point), GetHitSlack(), localFilter, subgraphs) ??
-														PickSubgraph(subgraphs, ScreenToSource(point));
+				Geometry geometry = bBNode.Hit(ScreenToSource(point), GetHitSlack(), localFilter, subgraphs) ?? PickSubgraph(subgraphs, ScreenToSource(point));
 				selectedDObject = geometry == null ? null : geometry.dObject;
 				if (old == selectedDObject) return;
 				SetSelectedObject(selectedDObject);
 				if (ObjectUnderMouseCursorChanged != null)
 				{
-					var changedArgs = new ObjectUnderMouseCursorChangedEventArgs((IViewerObject)old,
-							selectedDObject);
+					var changedArgs = new ObjectUnderMouseCursorChangedEventArgs((IViewerObject)old, selectedDObject);
 					ObjectUnderMouseCursorChanged(this, changedArgs);
 				}
 			}
@@ -2170,7 +2168,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 							settings.EdgeRoutingSettings.EdgeRoutingMode = EdgeRoutingMode.Spline;
 				}
 			}
-			else if (Graph != null)	Graph.LayoutAlgorithmSettings = backup;
+			else if (Graph != null) Graph.LayoutAlgorithmSettings = backup;
 			return layoutAlgorithmHasChanged;
 		}
 
@@ -2578,6 +2576,14 @@ namespace Microsoft.Msagl.GraphViewerGdi
 				iEditViewerMouseUp(this, iArgs);
 		}
 
+		/// <summary>
+		/// Fires AnnotationObjectUnderMouseCursorChanged if assigned
+		/// </summary>
+		/// <param name="e"></param>
+		internal void RaiseAnnotationHoverEvent(AnnotationObjectUnderMouseCursorChangedEventArgs e)
+		{
+			AnnotationObjectUnderMouseCursorChanged?.Invoke(this, e);
+		}
 
 		/// <summary>
 		/// This event is raised before the file saving
