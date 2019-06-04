@@ -255,7 +255,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			Cursor annotationCursor = Cursors.Default;
 			if (args.Button == MouseButtons.None)
 			{
-				var hoverAnnotationObject = GViewer._annotationObjects.SelectMany(a => a.MeAndMyChildren()).LastOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
+				var hoverAnnotationObject = GViewer._annotationObjects.SelectMany(a => a.MeAndMyChildren()).ToList().LastOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
 				if (hoverAnnotationObject != null && !hoverAnnotationObject.Locked)
 				{
 					AnnotationObjectRegion hr = hoverAnnotationObject.HitRegion(p1);
