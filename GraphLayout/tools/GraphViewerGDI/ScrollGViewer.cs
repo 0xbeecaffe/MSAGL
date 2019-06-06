@@ -75,6 +75,10 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		const string panButtonToolTipText = "Pan";
 
 		public RectangleF srcRect { get; private set; } = new RectangleF(0, 0, 0, 0);
+		/// <summary>
+		/// Controls the zooming sensitivity by mouse wheel
+		/// </summary>
+		public double MouseWheelZoomFraction { get; set; } = 0.9;
 
 		internal double zoomFraction = 0.5f;
 
@@ -737,8 +741,8 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			{
 				if (OriginalGraph == null) return;
 				var pointSrc = ScreenToSource(e.X, e.Y);
-				const double zoomFractionLocal = 0.9;
-				var zoomInc = e.Delta < 0 ? zoomFractionLocal : 1.0 / zoomFractionLocal;
+		
+				var zoomInc = e.Delta < 0 ? MouseWheelZoomFraction : 1.0 / MouseWheelZoomFraction;
 				var scale = CurrentScale * zoomInc;
 				var d = OriginalGraph.BoundingBox.Diagonal;
 				if (d * scale < 5 || d * scale > HugeDiagonal)

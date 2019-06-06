@@ -1,4 +1,15 @@
-﻿using System;
+﻿/* #########################################################################*/
+/* #                                                                       #*/
+/* #  This file is part of MSAGL project, adding support for displaying    #*/
+/* #  various Annotation objects on the Graph.                             #*/
+/* #                                                                       #*/
+/* #  You may not use this file except in compliance with the license.     #*/
+/* #                                                                       #*/
+/* #  Copyright Laszlo Frank (c) 2018-2019                                 #*/
+/* #                                                                       #*/
+/* #########################################################################*/
+
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
