@@ -373,6 +373,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 	[Serializable]
 	public abstract class FramedAnnotationObject : AnnotationBaseObject
 	{
+		#region Fields
 		/// <summary>
 		/// The contour color of the object
 		/// </summary>
@@ -409,7 +410,21 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		/// </summary>
 		public BackFillMode FillMode { get; set; } = BackFillMode.Solid;
 
+		[XmlIgnore]
+		public string _backgroundImageFileName = null;
+
+		[XmlElement(Type = typeof(XmlImage))]
+		public Image _backgroundImage = null;
+
 		private int _OpacityLevel = 100;
+
+		#endregion
+
+		#region Constructors
+		public FramedAnnotationObject() : base() { }
+		#endregion
+
+		#region Public members
 		/// <summary>
 		/// The level of fill color trnsparency between 0..255
 		/// </summary>
@@ -428,6 +443,51 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 		/// Must return the GraphicPath object that is the contour of this Annotation object
 		/// </summary>
 		public abstract GraphicsPath Frame { get; }
+
+		/// <summary>
+		/// Gets or sets the background image. Setting an image directly will clear BackgroundImageFileName property.
+		/// </summary>
+		[XmlIgnore]
+		public Image BackgroundImage
+		{
+			get { return _backgroundImage; }
+			set
+			{
+				_backgroundImage?.Dispose();
+				_backgroundImage = null;
+				_backgroundImageFileName = null;
+				if (value != null && value.Width > 0 && value.Height > 0)
+				{
+					_backgroundImage = value;
+					RotateFlipType transformation = RotateFlipType.RotateNoneFlipY;
+					_backgroundImage.RotateFlip(transformation);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the file name for the background image. Setting the file name will load the image and set the BackgroundImage.
+		/// </summary>
+		[XmlIgnore]
+		public string BackgroundImageFileName
+		{
+			get
+			{
+				return _backgroundImageFileName;
+			}
+			set
+			{
+				if (string.IsNullOrEmpty(value))
+				{
+					BackgroundImage = null;
+				}
+				else
+				{
+					BackgroundImage = Image.FromFile(value);
+					_backgroundImageFileName = value;
+				}
+			}
+		}
 
 		public virtual Pen DrawingPen
 		{
@@ -455,6 +515,18 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 			if (g == null) return;
 			if (BaseRectangle.Width == 0 || BaseRectangle.Height == 0) return;
 			// --
+			if (_backgroundImage != null)
+			{
+				try
+				{
+					g.SetClip(Frame);
+					g.DrawImage(_backgroundImage, BaseRectangle);
+				}
+				finally
+				{
+					g.ResetClip();
+				}
+			}
 			switch (FillMode)
 			{
 				case BackFillMode.None: break;
@@ -551,6 +623,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 				return r.IsVisible(testPoint);
 			}
 		}
+		#endregion
 	}
 
 	/// <summary>
@@ -559,6 +632,11 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 	[Serializable]
 	public class AnnotationEllipse : FramedAnnotationObject
 	{
+		#region Constructors
+		public AnnotationEllipse() : base() { }
+		#endregion
+
+		#region Public members
 		/// <summary>
 		/// Returns the ellipse shaped GraphicsPath that fits BaseRectangle
 		/// </summary>
@@ -572,6 +650,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 				return path;
 			}
 		}
+		#endregion
 	}
 
 	/// <summary>
@@ -749,6 +828,11 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 	[Serializable]
 	public class AnnotationRectangle : FramedAnnotationObject
 	{
+		#region Constructors
+		public AnnotationRectangle() : base() { }
+		#endregion
+
+		#region Public members
 		/// <summary>
 		/// Returns the rectangle shaped GraphicsPath that fits BaseRectangle
 		/// </summary>
@@ -762,6 +846,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 				return path;
 			}
 		}
+		#endregion
 	}
 
 	[Serializable]
