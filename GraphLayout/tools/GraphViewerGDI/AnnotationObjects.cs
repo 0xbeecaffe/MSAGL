@@ -785,10 +785,7 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 
 		public override bool ContainsPoint(Point testPoint)
 		{
-			using (var r = new Region(Curve))
-			{
-				return r.IsVisible(testPoint);
-			}
+			return Curve.IsOutlineVisible(testPoint, DrawingPen);
 		}
 
 		/// <summary>
