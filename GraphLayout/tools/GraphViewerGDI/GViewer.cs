@@ -383,11 +383,14 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		public void AddAnnotationObject(AnnotationBaseObject aObject, int index = -1)
 		{
 			if (aObject == null) return;
-			if (!_annotationObjects.Contains(aObject))
+			lock (_annotationObjects)
 			{
-				if (index == -1) _annotationObjects.Add(aObject);
-				else _annotationObjects.Insert(index, aObject);
-				aObject.Viewer = this;
+				if (!_annotationObjects.Contains(aObject))
+				{
+					if (index == -1) _annotationObjects.Add(aObject);
+					else _annotationObjects.Insert(index, aObject);
+					aObject.Viewer = this;
+				}
 			}
 			Invalidate();
 		}
@@ -399,11 +402,14 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		public void AddAnnotationObject(List<AnnotationBaseObject> aObjects)
 		{
 			if (aObjects == null) return;
-			aObjects.ForEach(ao =>
+			lock (_annotationObjects)
 			{
-				if (!_annotationObjects.Contains(ao)) _annotationObjects.Add(ao);
-				ao.Viewer = this;
-			});
+				aObjects.ForEach(ao =>
+				{
+					if (!_annotationObjects.Contains(ao)) _annotationObjects.Add(ao);
+					ao.Viewer = this;
+				});
+			}
 			Invalidate();
 		}
 
@@ -414,11 +420,14 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		public void RemoveAnnotationObject(AnnotationBaseObject aObject)
 		{
 			if (aObject == null) return;
-			if (_annotationObjects.Contains(aObject))
+			lock (_annotationObjects)
 			{
-				_annotationObjects.Remove(aObject);
-				aObject.Viewer = null;
-				Invalidate();
+				if (_annotationObjects.Contains(aObject))
+				{
+					_annotationObjects.Remove(aObject);
+					aObject.Viewer = null;
+					Invalidate();
+				}
 			}
 		}
 
@@ -427,7 +436,10 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		/// </summary>
 		public void ClearAnnotation()
 		{
-			_annotationObjects.Clear();
+			lock (_annotationObjects)
+			{
+				_annotationObjects.Clear();
+			}
 			Invalidate();
 		}
 
@@ -666,7 +678,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		{
 			get
 			{
-				if (MousePositonWhenSetSelectedObject != MousePosition)	UnconditionalHit(null, EntityFilterDelegate);
+				if (MousePositonWhenSetSelectedObject != MousePosition) UnconditionalHit(null, EntityFilterDelegate);
 				return selectedDObject;
 			}
 		}
@@ -1718,12 +1730,16 @@ namespace Microsoft.Msagl.GraphViewerGdi
 					double scale = CurrentScale;
 					foreach (IViewerObject viewerObject in Entities)
 						((DObject)viewerObject).UpdateRenderedBox();
-
-					_annotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Background).ToList().ForEach(o => o.Draw(g));
+					lock (_annotationObjects)
+					{
+						_annotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Background).ToList().ForEach(o => o.Draw(g));
+					}
 
 					DGraph.DrawGraph(g);
-
-					_annotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Foreground).ToList().ForEach(o => o.Draw(g));
+					lock (_annotationObjects)
+					{
+						_annotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Foreground).ToList().ForEach(o => o.Draw(g));
+					}
 					//some info is known only after the first drawing
 
 					if (bBNode == null && BuildHitTree

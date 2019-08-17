@@ -534,7 +534,10 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		{
 			get
 			{
-				return _annotationObjects.Count > 0 ? Core.Geometry.Rectangle.Union(originalGraph.BoundingBox, AnnotationObjectsBoundingBox) : originalGraph.BoundingBox;
+				lock (_annotationObjects)
+				{
+					return _annotationObjects.Count > 0 ? Core.Geometry.Rectangle.Union(originalGraph.BoundingBox, AnnotationObjectsBoundingBox) : originalGraph.BoundingBox;
+				}
 			}
 		}
 
@@ -545,17 +548,20 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		{
 			get
 			{
-				if (_annotationObjects.Count > 0)
+				lock (_annotationObjects)
 				{
-					int panning = 3;
-					int minLeft = _annotationObjects.Min(a => a.BaseRectangle.Left) - panning;
-					int maxRight = _annotationObjects.Max(a => a.BaseRectangle.Right) + panning;
-					int minTop = _annotationObjects.Min(a => a.BaseRectangle.Top) - panning;
-					int maxBottom = _annotationObjects.Max(a => a.BaseRectangle.Bottom) + panning;
-					Core.Geometry.Rectangle r = new Core.Geometry.Rectangle(minLeft, minTop, new Point(maxRight - minLeft, maxBottom - minTop));
-					return r;
+					if (_annotationObjects.Count > 0)
+					{
+						int panning = 3;
+						int minLeft = _annotationObjects.Min(a => a.BaseRectangle.Left) - panning;
+						int maxRight = _annotationObjects.Max(a => a.BaseRectangle.Right) + panning;
+						int minTop = _annotationObjects.Min(a => a.BaseRectangle.Top) - panning;
+						int maxBottom = _annotationObjects.Max(a => a.BaseRectangle.Bottom) + panning;
+						Core.Geometry.Rectangle r = new Core.Geometry.Rectangle(minLeft, minTop, new Point(maxRight - minLeft, maxBottom - minTop));
+						return r;
+					}
+					else return new Core.Geometry.Rectangle(0, 0, 0, 0);
 				}
-				else return new Core.Geometry.Rectangle(0, 0, 0, 0);
 			}
 		}
 
@@ -824,8 +830,11 @@ namespace Microsoft.Msagl.GraphViewerGdi
 			// only select any annotation when SelectedObject is null or other annotation object
 			if (SelectedObject == null || SelectedObject is AnnotationBaseObject)
 			{
-				_annotationObjects.SelectMany(ao => ao.MeAndMyChildren()).ToList().ForEach(ao => ao.Selected = false);
-				panel.SelectedAnnotationObject = _annotationObjects.SelectMany(a => a.MeAndMyChildren()).LastOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
+				lock (_annotationObjects)
+				{
+					_annotationObjects.SelectMany(ao => ao.MeAndMyChildren()).ToList().ForEach(ao => ao.Selected = false);
+					panel.SelectedAnnotationObject = _annotationObjects.SelectMany(a => a.MeAndMyChildren()).LastOrDefault(a => a.HitRegion(p1) != AnnotationObjectRegion.None);
+				}
 				if (panel.SelectedAnnotationObject != null)
 				{
 					panel.SelectedAnnotationObject.Selected = true;
