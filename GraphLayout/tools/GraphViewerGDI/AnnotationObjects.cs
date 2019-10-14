@@ -964,7 +964,8 @@ namespace Microsoft.Msagl.GraphViewerGdi.Annotation
 	/// <summary>
 	/// Position of the annotation objext in Z order
 	/// </summary>
-	public enum AnnotationObjectLayer { Background, Foreground }
+	[Flags]
+	public enum AnnotationObjectLayer { Background = 1, Foreground = 2 }
 
 	public enum BackFillMode { None, Solid, Gradient }
 

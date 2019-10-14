@@ -1416,6 +1416,11 @@ namespace Microsoft.Msagl.GraphViewerGdi
 		/// </summary>
 		private bool bulkRemovingEntities { get; set; }
 
+		/// <summary>
+		/// Controls the Annotation object layer that is shown in viewer
+		/// </summary>
+		public AnnotationObjectLayer VisibleAnnotationObjects { get; set; } = AnnotationObjectLayer.Foreground | AnnotationObjectLayer.Background;
+
 		double HugeDiagonal = 10e6;
 
 		/// <summary>
@@ -1730,15 +1735,22 @@ namespace Microsoft.Msagl.GraphViewerGdi
 					double scale = CurrentScale;
 					foreach (IViewerObject viewerObject in Entities)
 						((DObject)viewerObject).UpdateRenderedBox();
-					lock (_annotationObjects)
+					if ((VisibleAnnotationObjects & AnnotationObjectLayer.Background) == AnnotationObjectLayer.Background)
 					{
-						_annotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Background).ToList().ForEach(o => o.Draw(g));
+						lock (_annotationObjects)
+						{
+							_annotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Background).ToList().ForEach(o => o.Draw(g));
+						}
 					}
 
 					DGraph.DrawGraph(g);
-					lock (_annotationObjects)
+
+					if ((VisibleAnnotationObjects & AnnotationObjectLayer.Foreground) == AnnotationObjectLayer.Foreground)
 					{
-						_annotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Foreground).ToList().ForEach(o => o.Draw(g));
+						lock (_annotationObjects)
+						{
+							_annotationObjects.Where(o => o.Layer == AnnotationObjectLayer.Foreground).ToList().ForEach(o => o.Draw(g));
+						}
 					}
 					//some info is known only after the first drawing
 
