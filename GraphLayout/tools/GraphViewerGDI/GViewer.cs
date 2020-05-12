@@ -2191,9 +2191,9 @@ namespace Microsoft.Msagl.GraphViewerGdi
 							settings.EdgeRoutingSettings.BundlingSettings = new BundlingSettings();
 					}
 
-					if (!(settings is SugiyamaLayoutSettings)) //fix wrong settings coming from the Sugiyama
-						if (settings.EdgeRoutingSettings.EdgeRoutingMode == EdgeRoutingMode.SugiyamaSplines)
-							settings.EdgeRoutingSettings.EdgeRoutingMode = EdgeRoutingMode.Spline;
+					//if (!(settings is SugiyamaLayoutSettings)) //fix wrong settings coming from the Sugiyama
+					//	if (settings.EdgeRoutingSettings.EdgeRoutingMode == EdgeRoutingMode.SugiyamaSplines)
+					//		settings.EdgeRoutingSettings.EdgeRoutingMode = EdgeRoutingMode.Spline;
 				}
 			}
 			else if (Graph != null) Graph.LayoutAlgorithmSettings = backup;
