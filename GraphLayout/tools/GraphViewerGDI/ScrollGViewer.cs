@@ -762,6 +762,7 @@ namespace Microsoft.Msagl.GraphViewerGdi
 				Transform[0, 2] = dx;
 				Transform[1, 2] = dy;
 				panel.Invalidate();
+        if (e is HandledMouseEventArgs) (e as HandledMouseEventArgs).Handled = true;
 			}
 			OnMouseWheel(e);
 		}
